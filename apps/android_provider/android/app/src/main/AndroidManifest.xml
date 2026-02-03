@@ -9,6 +9,11 @@
     <uses-permission android:name="android.permission.READ_CALL_LOG"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
+    <!-- Network permissions for HTTP server and mDNS -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE"/>
+    <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE"/>
+
     <application
         android:label="PhoneSync"
         android:name="${applicationName}"
