@@ -1,0 +1,81 @@
+# Roadmap: jljm-phonesync
+
+## Overview
+
+This roadmap delivers a Flutter monorepo that extracts phone numbers from an Android device (SMS, calls, contacts) and exports them to Excel on a Windows or Mac desktop. Three phases build vertically: Phase 1 creates the Android data provider with extraction capabilities, Phase 2 adds network communication between devices, and Phase 3 delivers the desktop client with Excel export. Each phase produces a testable, coherent capability.
+
+## Phases
+
+**Phase Numbering:**
+- Integer phases (1, 2, 3): Planned milestone work
+- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+
+- [ ] **Phase 1: Android Data Provider** - Extract phone numbers from contacts, SMS, and call logs on Android
+- [ ] **Phase 2: Network Protocol** - Connect Android and desktop over local network with PIN pairing
+- [ ] **Phase 3: Desktop Client & Export** - Fetch data on Windows/Mac and export to Excel
+
+## Phase Details
+
+### Phase 1: Android Data Provider
+**Goal**: Android app can extract phone numbers from all three sources (contacts, SMS, call history) with incremental sync support
+**Depends on**: Nothing (first phase)
+**Requirements**: DATA-01, DATA-02, DATA-03, DATA-04, PLAT-01
+**Success Criteria** (what must be TRUE):
+  1. User can grant permissions and app reads contacts with phone numbers
+  2. User can grant permissions and app reads SMS sender/recipient numbers
+  3. User can grant permissions and app reads call log numbers
+  4. App tracks "last sync" timestamp and can query only newer records
+  5. Large datasets (50,000+ entries) load without memory errors
+**Plans**: TBD (1-3 plans expected)
+
+Plans:
+- [ ] 01-01: Foundation & monorepo setup (Flutter 3.27+, Melos, package structure)
+- [ ] 01-02: Android data extraction (permissions, contacts, SMS, calls, pagination)
+
+### Phase 2: Network Protocol
+**Goal**: Android and desktop can discover each other on local network, pair securely, and transfer data
+**Depends on**: Phase 1
+**Requirements**: XFER-01, XFER-02, XFER-03, XFER-04
+**Success Criteria** (what must be TRUE):
+  1. Desktop app discovers Android device automatically on same network (no manual IP entry)
+  2. Android displays 6-digit PIN that desktop user enters to pair
+  3. Data transfer between paired devices is encrypted
+  4. Android serves /sms, /calls, /contacts endpoints that return JSON data
+**Plans**: TBD (1-2 plans expected)
+
+Plans:
+- [ ] 02-01: mDNS discovery and HTTP server on Android
+- [ ] 02-02: PIN pairing and TLS encryption
+
+### Phase 3: Desktop Client & Export
+**Goal**: Desktop app (Windows and Mac) fetches data from Android and exports to Excel
+**Depends on**: Phase 2
+**Requirements**: PLAT-02, PLAT-03, EXPO-01, EXPO-02, EXPO-03, EXPO-04, EXPO-05
+**Success Criteria** (what must be TRUE):
+  1. Windows app can discover, pair with, and sync from Android device
+  2. Mac app can discover, pair with, and sync from Android device
+  3. User can export synced data to .xlsx file with phone number, name, source, and timestamp
+  4. Phone numbers are normalized to consistent format in export
+  5. Duplicate phone numbers across sources are deduplicated in export
+  6. Export can filter to Korean mobile numbers (010 prefix)
+  7. Export handles 50,000+ rows without memory issues
+**Plans**: TBD (2-3 plans expected)
+
+Plans:
+- [ ] 03-01: Desktop app discovery and pairing flow
+- [ ] 03-02: Data sync and Excel export with normalization/dedup
+
+## Progress
+
+**Execution Order:**
+Phases execute in numeric order: 1 -> 2 -> 3
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. Android Data Provider | 0/2 | Not started | - |
+| 2. Network Protocol | 0/2 | Not started | - |
+| 3. Desktop Client & Export | 0/2 | Not started | - |
+
+---
+*Roadmap created: 2026-02-03*
+*Last updated: 2026-02-03*

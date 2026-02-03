@@ -69,28 +69,28 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | TBD | Pending |
-| DATA-02 | TBD | Pending |
-| DATA-03 | TBD | Pending |
-| DATA-04 | TBD | Pending |
-| XFER-01 | TBD | Pending |
-| XFER-02 | TBD | Pending |
-| XFER-03 | TBD | Pending |
-| XFER-04 | TBD | Pending |
-| EXPO-01 | TBD | Pending |
-| EXPO-02 | TBD | Pending |
-| EXPO-03 | TBD | Pending |
-| EXPO-04 | TBD | Pending |
-| EXPO-05 | TBD | Pending |
-| PLAT-01 | TBD | Pending |
-| PLAT-02 | TBD | Pending |
-| PLAT-03 | TBD | Pending |
+| DATA-01 | Phase 1 | Pending |
+| DATA-02 | Phase 1 | Pending |
+| DATA-03 | Phase 1 | Pending |
+| DATA-04 | Phase 1 | Pending |
+| XFER-01 | Phase 2 | Pending |
+| XFER-02 | Phase 2 | Pending |
+| XFER-03 | Phase 2 | Pending |
+| XFER-04 | Phase 2 | Pending |
+| EXPO-01 | Phase 3 | Pending |
+| EXPO-02 | Phase 3 | Pending |
+| EXPO-03 | Phase 3 | Pending |
+| EXPO-04 | Phase 3 | Pending |
+| EXPO-05 | Phase 3 | Pending |
+| PLAT-01 | Phase 1 | Pending |
+| PLAT-02 | Phase 3 | Pending |
+| PLAT-03 | Phase 3 | Pending |
 
 **Coverage:**
 - v1 requirements: 16 total
-- Mapped to phases: 0
-- Unmapped: 16
+- Mapped to phases: 16
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 after initial definition*
+*Last updated: 2026-02-03 after roadmap creation*
