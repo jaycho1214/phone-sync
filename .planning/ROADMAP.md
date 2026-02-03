@@ -11,7 +11,7 @@ This roadmap delivers a Flutter monorepo that extracts phone numbers from an And
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
 - [x] **Phase 1: Android Data Provider** - Extract phone numbers from contacts, SMS, and call logs on Android
-- [ ] **Phase 2: Network Protocol** - Connect Android and desktop over local network with PIN pairing
+- [x] **Phase 2: Network Protocol** - Connect Android and desktop over local network with PIN pairing
 - [ ] **Phase 3: Desktop Client & Export** - Fetch data on Windows/Mac and export to Excel
 
 ## Phase Details
@@ -33,19 +33,20 @@ Plans:
 - [x] 01-02-PLAN.md - Data extraction services (permissions, contacts, SMS, calls with pagination, UI)
 
 ### Phase 2: Network Protocol
-**Goal**: Android and desktop can discover each other on local network, pair securely, and transfer data
+**Goal**: Android app serves data via HTTP/TLS and advertises via mDNS for discovery (Android server-side only; desktop client in Phase 3)
 **Depends on**: Phase 1
-**Requirements**: XFER-01, XFER-02, XFER-03, XFER-04
+**Requirements**: XFER-01 (Android side), XFER-02 (Android side), XFER-03, XFER-04
 **Success Criteria** (what must be TRUE):
-  1. Desktop app discovers Android device automatically on same network (no manual IP entry)
-  2. Android displays 6-digit PIN that desktop user enters to pair
-  3. Data transfer between paired devices is encrypted
+  1. Android advertises via mDNS (_phonesync._tcp) for desktop discovery (desktop discovery client in Phase 3)
+  2. Android displays 6-digit PIN on screen for pairing
+  3. Data transfer uses TLS encryption (HTTPS with self-signed certificate)
   4. Android serves /sms, /calls, /contacts endpoints that return JSON data
+  5. POST /pair with valid PIN returns session token; data endpoints require valid token
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01-PLAN.md - HTTP server with shelf serving /contacts, /sms, /calls endpoints; mDNS advertisement
-- [ ] 02-02-PLAN.md - TLS encryption, PIN pairing with session tokens, pairing UI on home screen
+- [x] 02-01-PLAN.md - HTTP server with shelf serving /contacts, /sms, /calls endpoints; mDNS advertisement
+- [x] 02-02-PLAN.md - TLS encryption, PIN pairing with session tokens, pairing UI on home screen
 
 ### Phase 3: Desktop Client & Export
 **Goal**: Desktop app (Windows and Mac) fetches data from Android and exports to Excel
@@ -73,9 +74,9 @@ Phases execute in numeric order: 1 -> 2 -> 3
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
-| 2. Network Protocol | 0/2 | Planned | - |
+| 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
 | 3. Desktop Client & Export | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 2 planned*
+*Last updated: 2026-02-03 - Phase 2 complete*

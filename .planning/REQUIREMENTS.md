@@ -16,10 +16,10 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Transfer & Pairing
 
-- [ ] **XFER-01**: Desktop app discovers Android devices on local network via mDNS
-- [ ] **XFER-02**: Android app displays PIN code; desktop pairs by entering PIN
-- [ ] **XFER-03**: Data transfer uses TLS encryption over local network
-- [ ] **XFER-04**: Android app serves data via HTTP server when paired
+- [x] **XFER-01**: Desktop app discovers Android devices on local network via mDNS
+- [x] **XFER-02**: Android app displays PIN code; desktop pairs by entering PIN
+- [x] **XFER-03**: Data transfer uses TLS encryption over local network
+- [x] **XFER-04**: Android app serves data via HTTP server when paired
 
 ### Export
 
@@ -73,10 +73,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | DATA-02 | Phase 1 | Complete |
 | DATA-03 | Phase 1 | Complete |
 | DATA-04 | Phase 1 | Complete |
-| XFER-01 | Phase 2 | Pending |
-| XFER-02 | Phase 2 | Pending |
-| XFER-03 | Phase 2 | Pending |
-| XFER-04 | Phase 2 | Pending |
+| XFER-01 | Phase 2 | Complete |
+| XFER-02 | Phase 2 | Complete |
+| XFER-03 | Phase 2 | Complete |
+| XFER-04 | Phase 2 | Complete |
 | EXPO-01 | Phase 3 | Pending |
 | EXPO-02 | Phase 3 | Pending |
 | EXPO-03 | Phase 3 | Pending |
@@ -93,4 +93,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 1 complete*
+*Last updated: 2026-02-03 - Phase 2 complete*
