@@ -1,6 +1,16 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Contacts permission -->
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+
+    <!-- SMS permissions -->
+    <uses-permission android:name="android.permission.READ_SMS"/>
+
+    <!-- Call log permissions (requires READ_PHONE_STATE on Android 9+) -->
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+
     <application
-        android:label="android_provider"
+        android:label="PhoneSync"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
