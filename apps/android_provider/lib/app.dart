@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/home_screen.dart';
 
 class PhoneSyncApp extends StatelessWidget {
   const PhoneSyncApp({super.key});
@@ -11,9 +12,7 @@ class PhoneSyncApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
         useMaterial3: true,
       ),
-      home: const Scaffold(
-        body: Center(child: Text('PhoneSync - Setup Complete')),
-      ),
+      home: const HomeScreen(),
     );
   }
 }
