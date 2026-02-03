@@ -26,11 +26,11 @@ This roadmap delivers a Flutter monorepo that extracts phone numbers from an And
   3. User can grant permissions and app reads call log numbers
   4. App tracks "last sync" timestamp and can query only newer records
   5. Large datasets (50,000+ entries) load without memory errors
-**Plans**: TBD (1-3 plans expected)
+**Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Foundation & monorepo setup (Flutter 3.27+, Melos, package structure)
-- [ ] 01-02: Android data extraction (permissions, contacts, SMS, calls, pagination)
+- [ ] 01-01-PLAN.md - Foundation & monorepo setup (Melos workspace, android_provider app, Android permissions)
+- [ ] 01-02-PLAN.md - Data extraction services (permissions, contacts, SMS, calls with pagination, UI)
 
 ### Phase 2: Network Protocol
 **Goal**: Android and desktop can discover each other on local network, pair securely, and transfer data
@@ -72,7 +72,7 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Android Data Provider | 0/2 | Not started | - |
+| 1. Android Data Provider | 0/2 | Planned | - |
 | 2. Network Protocol | 0/2 | Not started | - |
 | 3. Desktop Client & Export | 0/2 | Not started | - |
 
