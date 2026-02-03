@@ -41,11 +41,11 @@ Plans:
   2. Android displays 6-digit PIN that desktop user enters to pair
   3. Data transfer between paired devices is encrypted
   4. Android serves /sms, /calls, /contacts endpoints that return JSON data
-**Plans**: TBD (1-2 plans expected)
+**Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: mDNS discovery and HTTP server on Android
-- [ ] 02-02: PIN pairing and TLS encryption
+- [ ] 02-01-PLAN.md - HTTP server with shelf serving /contacts, /sms, /calls endpoints; mDNS advertisement
+- [ ] 02-02-PLAN.md - TLS encryption, PIN pairing with session tokens, pairing UI on home screen
 
 ### Phase 3: Desktop Client & Export
 **Goal**: Desktop app (Windows and Mac) fetches data from Android and exports to Excel
@@ -72,10 +72,10 @@ Phases execute in numeric order: 1 -> 2 -> 3
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Android Data Provider | 2/2 | ✓ Complete | 2026-02-03 |
-| 2. Network Protocol | 0/2 | Not started | - |
+| 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
+| 2. Network Protocol | 0/2 | Planned | - |
 | 3. Desktop Client & Export | 0/2 | Not started | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 1 complete*
+*Last updated: 2026-02-03 - Phase 2 planned*
