@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A Flutter-based internal tool for extracting phone numbers from an Android device. The monorepo contains Android, Windows, and Mac apps that communicate over local network. Android exports SMS, call history, and contacts; desktop apps fetch and export to Excel for use in promotional SMS campaigns.
+A Flutter-based internal tool for syncing phone numbers from an Android device. The monorepo contains Android, Windows, and Mac apps that communicate over local network. Android serves SMS, call history, and contacts; desktop apps perform incremental sync (only new records) and export to Excel for use in promotional SMS campaigns.
 
 ## Core Value
 
@@ -21,9 +21,12 @@ Phone numbers from the Android device can be exported to Excel on demand, secure
 - [ ] Android app reads contacts and extracts phone numbers
 - [ ] Android app displays pairing PIN code
 - [ ] Android app serves data over local network when paired
+- [ ] Android app supports incremental sync (only new records since last sync)
 - [ ] Desktop app discovers Android devices on local network
 - [ ] Desktop app pairs with Android via PIN code entry
 - [ ] Desktop app fetches SMS, call, and contact data from paired Android
+- [ ] Desktop app tracks sync state per paired device
+- [ ] Desktop app fetches only new records on subsequent syncs
 - [ ] Desktop app exports data to Excel file
 - [ ] Excel export includes: phone number, contact name, source type, date/timestamp
 - [ ] All entries preserved (no deduplication across sources)
@@ -35,7 +38,7 @@ Phone numbers from the Android device can be exported to Excel on demand, secure
 - Cloud sync — local network only, internal security requirement
 - Multiple phones to one desktop — single phone pairing sufficient
 - Browse/filter UI on desktop — direct export only
-- Real-time/scheduled sync — on-demand export only
+- Scheduled/automatic sync — on-demand only (user triggers sync)
 - Bidirectional sync — phone to desktop only
 - SMS content/message body — only phone numbers needed
 
@@ -64,6 +67,7 @@ Phone numbers from the Android device can be exported to Excel on demand, secure
 | PIN pairing | Security without complex auth infrastructure | — Pending |
 | Keep all entries (no dedup) | Preserve source information for each phone number | — Pending |
 | Direct export (no browse UI) | Simplicity, user just needs Excel output | — Pending |
+| Incremental sync | Large datasets; only fetch new records since last sync | — Pending |
 
 ---
 *Last updated: 2026-02-03 after initialization*
