@@ -4,6 +4,7 @@ import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import '../call_log_service.dart';
 import '../contacts_service.dart';
+import '../pairing_service.dart';
 import '../sms_service.dart';
 import 'routes.dart';
 
@@ -20,11 +21,14 @@ class PhoneSyncServer {
 
   /// Start the server on the specified port
   /// Use port 0 for dynamic port assignment
+  /// Pass securityContext for HTTPS, or null for HTTP (testing only)
   Future<void> start({
     int port = 0,
     required ContactsService contactsService,
     required SmsService smsService,
     required CallLogService callLogService,
+    required PairingService pairingService,
+    SecurityContext? securityContext,
   }) async {
     if (_server != null) {
       throw StateError('Server is already running');
@@ -34,12 +38,14 @@ class PhoneSyncServer {
       contactsService: contactsService,
       smsService: smsService,
       callLogService: callLogService,
+      pairingService: pairingService,
     );
 
     _server = await shelf_io.serve(
       router.call,
       InternetAddress.anyIPv4,
       port,
+      securityContext: securityContext,
     );
 
     _port = _server!.port;

@@ -3,6 +3,7 @@ import 'package:shelf_router/shelf_router.dart';
 
 import '../call_log_service.dart';
 import '../contacts_service.dart';
+import '../pairing_service.dart';
 import '../sms_service.dart';
 import 'handlers/calls_handler.dart';
 import 'handlers/contacts_handler.dart';
@@ -13,6 +14,7 @@ Router createRouter({
   required ContactsService contactsService,
   required SmsService smsService,
   required CallLogService callLogService,
+  required PairingService pairingService,
 }) {
   final router = Router();
 
