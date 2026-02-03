@@ -1,0 +1,22 @@
+name: jljm_phonesync
+
+packages:
+  - apps/*
+  - packages/*
+
+scripts:
+  analyze:
+    run: melos exec -- flutter analyze
+    description: Run flutter analyze in all packages
+
+  test:
+    run: melos exec -- flutter test
+    description: Run flutter test in all packages
+
+  clean:
+    run: melos exec -- flutter clean
+    description: Run flutter clean in all packages
+
+  get:
+    run: melos exec -- flutter pub get
+    description: Run flutter pub get in all packages

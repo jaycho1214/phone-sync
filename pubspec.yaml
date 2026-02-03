@@ -1,0 +1,8 @@
+name: jljm_phonesync
+description: Flutter monorepo for phone data sync between Android and desktop
+
+environment:
+  sdk: ^3.10.0
+
+dev_dependencies:
+  melos: ^7.0.0-dev.1
