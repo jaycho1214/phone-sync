@@ -15,15 +15,51 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+  bool _hasAutoStarted = false;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     // Check permissions and load sync state on startup
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(permissionProvider.notifier).checkPermissions();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await ref.read(permissionProvider.notifier).checkPermissions();
       ref.read(syncStateProvider.notifier).loadSyncState();
+      // Auto-start server if permissions are granted
+      _autoStartServerIfReady();
     });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final server = ref.read(serverProvider);
+    if (state == AppLifecycleState.resumed && !server.isRunning) {
+      // Auto-start server when app comes back to foreground
+      _autoStartServerIfReady();
+    } else if (state == AppLifecycleState.paused) {
+      // Stop server when app goes to background
+      ref.read(serverProvider.notifier).stopServer();
+      ref.read(pairingProvider.notifier).reset();
+    }
+  }
+
+  void _autoStartServerIfReady() {
+    final permissions = ref.read(permissionProvider);
+    final server = ref.read(serverProvider);
+
+    // Start server if we have at least one permission and server isn't running
+    if (permissions.hasAnyGranted && !server.isRunning && !_hasAutoStarted) {
+      _hasAutoStarted = true;
+      ref.read(serverProvider.notifier).startServer();
+      ref.read(pairingProvider.notifier).generateNewPin();
+    }
   }
 
   @override
@@ -83,6 +119,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         hasSms: newPerms.sms.isGranted,
                         hasCallLog: newPerms.callLog.isGranted,
                       );
+                  // Auto-start server after permissions granted
+                  _hasAutoStarted = false; // Reset flag to allow auto-start
+                  _autoStartServerIfReady();
                 },
                 icon: const Icon(Icons.security),
                 label: const Text('Request Permissions'),
