@@ -2,7 +2,7 @@
 
 ## Overview
 
-This roadmap delivers a Flutter monorepo that extracts phone numbers from an Android device (SMS, calls, contacts) and exports them to Excel on a Windows or Mac desktop. Three phases build vertically: Phase 1 creates the Android data provider with extraction capabilities, Phase 2 adds network communication between devices, and Phase 3 delivers the desktop client with Excel export. Each phase produces a testable, coherent capability.
+This roadmap delivers a Flutter monorepo that extracts phone numbers from an Android device (SMS, calls, contacts) and exports them to Excel on a Windows or Mac desktop. Phases 1-3 (v1.0 MVP) built the core functionality: Android data extraction, network protocol with TLS/PIN security, and desktop client with Excel export. Phase 4 (v1.1) adds CI/CD automation and Linux support for automated multi-platform releases via GitHub Actions.
 
 ## Phases
 
@@ -10,9 +10,13 @@ This roadmap delivers a Flutter monorepo that extracts phone numbers from an And
 - Integer phases (1, 2, 3): Planned milestone work
 - Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
 
+**Milestone v1.0 (MVP) - Complete:**
 - [x] **Phase 1: Android Data Provider** - Extract phone numbers from contacts, SMS, and call logs on Android
 - [x] **Phase 2: Network Protocol** - Connect Android and desktop over local network with PIN pairing
-- [ ] **Phase 3: Desktop Client & Export** - Fetch data on Windows/Mac and export to Excel
+- [x] **Phase 3: Desktop Client & Export** - Fetch data on Windows/Mac and export to Excel
+
+**Milestone v1.1 (CI/CD & Linux):**
+- [ ] **Phase 4: Release Pipeline** - Automated multi-platform builds with GitHub Actions, Android signing, Linux support
 
 ## Phase Details
 
@@ -64,19 +68,35 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md - Desktop app setup, mDNS discovery, PIN pairing flow with session persistence
-- [ ] 03-02-PLAN.md - Drift database, data sync with progress, phone normalization/dedup, Excel export
+- [x] 03-02-PLAN.md - Drift database, data sync with progress, phone normalization/dedup, Excel export
+
+### Phase 4: Release Pipeline
+**Goal**: Automated multi-platform releases via GitHub Actions with signed Android APK, Linux support, and artifact distribution
+**Depends on**: Phase 3 (working apps to build)
+**Requirements**: CICD-01, CICD-02, CICD-03, CICD-04, CICD-05, CICD-06, CICD-07, CICD-08, CICD-09, CICD-10, SIGN-01, SIGN-02, SIGN-03, PLAT-04
+**Success Criteria** (what must be TRUE):
+  1. Pushing a v*.*.* tag triggers automated builds for all 4 platforms (Android, macOS, Windows, Linux)
+  2. All platform builds run in parallel and complete within 30 minutes
+  3. GitHub Release is created with downloadable APK, macOS .app, Windows .exe, and Linux bundle
+  4. Android APK is signed with release keystore and installable on devices
+  5. Each artifact has SHA256 checksum for verification
+**Plans**: TBD
+
+Plans:
+- [ ] 04-01-PLAN.md - TBD
 
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 1 -> 2 -> 3
+Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
 | 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
-| 3. Desktop Client & Export | 1/2 | In progress | - |
+| 3. Desktop Client & Export | 2/2 | Complete | 2026-02-04 |
+| 4. Release Pipeline | 0/? | Pending | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-04 - 03-01 complete*
+*Last updated: 2026-02-04 - Added Phase 4 (v1.1 CI/CD & Linux)*

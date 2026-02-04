@@ -9,12 +9,12 @@ See: .planning/PROJECT.md (updated 2026-02-04)
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-02-04 — Milestone v1.1 started
+Phase: 4 - Release Pipeline
+Plan: Not started
+Status: Ready for planning
+Last activity: 2026-02-04 — Roadmap created for v1.1
 
-Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
+Progress: [####################] 100% (v1.0) | [--------------------] 0% (v1.1)
 
 ## Performance Metrics
 
@@ -30,6 +30,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 | 1 | 2/2 | 18 min | 9 min |
 | 2 | 2/2 | 8 min | 4 min |
 | 3 | 2/2 | 14 min | 7 min |
+| 4 | 0/? | - | - |
 
 **Recent Trend:**
 - Last 5 plans: 3 min, 5 min, 7 min, 7 min
@@ -44,6 +45,7 @@ Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+**v1.0 MVP (complete):**
 - flutter_riverpod 2.6.1 (not 3.x) for riverpod_generator compatibility
 - compileSdk 36 required by plugin dependencies
 - Core library desugaring enabled for call_log package
@@ -59,25 +61,33 @@ Recent decisions affecting current work:
 - 32-char hex session token for post-pairing authentication
 - nsd with IpLookupType.any for desktop mDNS discovery
 - Dio badCertificateCallback for self-signed cert trust
-- flutter_secure_storage for session token persistence
+- flutter_secure_storage for session token persistence (shared_preferences on macOS)
 - Drift with sqlite3_flutter_libs for cross-platform SQLite
 - Phone number as primary key for automatic deduplication
 - Isolate.run for Excel export (no UI freeze on 50k+ rows)
 - Korean numbers digits-only, international E.164 format
 
+**v1.1 CI/CD (pending):**
+- GitHub Actions CI/CD for automated multi-platform builds on tag push
+- Tag-based versioning (v1.0.0 -> 1.0.0)
+- Single workflow file with parallel platform jobs
+- Android APK signing with keystore in GitHub Secrets
+
 ### Pending Todos
 
-None - project complete.
+None yet - Phase 4 planning not started.
 
 ### Blockers/Concerns
 
 - APK sideloading required (Play Store rejects SMS/call log permissions) - plan distribution from Phase 1
+- macOS certificate validation issues on macos-15 runners (pin to macos-14)
 
 ## Session Continuity
 
-Last session: 2026-02-04T01:20:36Z
-Stopped at: PROJECT COMPLETE
+Last session: 2026-02-04
+Stopped at: Roadmap created for v1.1
 Resume file: None
+Next action: /gsd:plan-phase 4
 
 ## Previous Milestone (v1.0 MVP)
 
