@@ -71,12 +71,24 @@ PhoneSync는 안드로이드 폰과 컴퓨터 사이에 **직접적이고 암호
 - **로컬 네트워크**: WiFi를 벗어나지 않음
 - **데이터 미저장**: 안드로이드 앱은 내보낸 데이터를 저장하지 않음
 
+## 다운로드
+
+[GitHub Releases](https://github.com/jaycho1214/phone-sync/releases)에서 최신 버전을 받으세요:
+
+| 플랫폼 | 다운로드 |
+|--------|----------|
+| Android | `phonesync-android-x.x.x.apk` |
+| Windows | `phonesync-windows-x.x.x.zip` |
+| Linux | `phonesync-linux-x.x.x.tar.gz` |
+
+**macOS**: 로컬 빌드 필요 (배포에 Apple Developer 인증서 필요). [소스에서 빌드](#소스에서-빌드) 참고.
+
 ## 빠른 시작
 
 ### 요구 사항
 
 - **안드로이드 폰** (API 23+ / Android 6.0+) — iOS는 지원하지 않음
-- macOS 또는 Windows 컴퓨터
+- Windows 또는 Linux 컴퓨터 (macOS는 로컬 빌드 필요)
 - 두 기기가 같은 WiFi 네트워크에 연결
 
 ### 설정
@@ -90,7 +102,7 @@ PhoneSync는 안드로이드 폰과 컴퓨터 사이에 **직접적이고 암호
 ## 아키텍처
 
 ```
-jljm-phonesync/
+phone-sync/
 ├── apps/
 │   ├── android_provider/     # Flutter 안드로이드 앱 (HTTPS 서버)
 │   │   ├── lib/
@@ -110,7 +122,7 @@ jljm-phonesync/
 ### 기술 스택
 
 - **프레임워크**: Flutter 3.x
-- **상태 관리**: Riverpod 3.x
+- **상태 관리**: Riverpod 2.x
 - **서버**: Shelf (자체 서명 TLS)
 - **검색**: mDNS/DNS-SD (`nsd` 패키지)
 - **내보내기**: `excel` 패키지로 .xlsx 생성
@@ -119,21 +131,24 @@ jljm-phonesync/
 
 ```bash
 # 클론
-git clone https://github.com/jljm/jljm-phonesync.git
-cd jljm-phonesync
+git clone https://github.com/jaycho1214/phone-sync.git
+cd phone-sync
 
 # 안드로이드
 cd apps/android_provider
 flutter pub get
 flutter build apk --release
 
-# 데스크톱 (macOS)
+# 데스크톱 (Windows)
 cd apps/desktop_client
 flutter pub get
-flutter build macos --release
-
-# 데스크톱 (Windows)
 flutter build windows --release
+
+# 데스크톱 (Linux)
+flutter build linux --release
+
+# 데스크톱 (macOS) - 로컬 빌드 필요
+flutter build macos --release
 ```
 
 ## FAQ
@@ -153,6 +168,10 @@ flutter build windows --release
 **Q: 증분 내보내기가 가능한가요?**
 
 네. 날짜 필터를 사용해 마지막 내보내기 이후의 문자/통화만 내보낼 수 있습니다.
+
+**Q: 왜 macOS 릴리스가 없나요?**
+
+Apple은 macOS 앱 배포에 연 $99의 Developer 인증서를 요구합니다. `flutter build macos --release`로 로컬 빌드하세요.
 
 ---
 

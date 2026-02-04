@@ -10,9 +10,9 @@
 #   KEY_ALIAS - Key alias (e.g., "upload")
 #
 # Outputs:
-#   - android_provider-{version}.apk (signed)
-#   - desktop_client-windows-{version}.zip
-#   - desktop_client-linux-{version}.tar.gz
+#   - phonesync-android-{version}.apk (signed)
+#   - phonesync-windows-{version}.zip
+#   - phonesync-linux-{version}.tar.gz
 #   - SHA256SUMS.txt
 #
 # Note: macOS builds require Apple Developer certificate ($99/year) - not included
@@ -70,12 +70,12 @@ jobs:
       - name: Rename APK
         run: |
           mv apps/android_provider/build/app/outputs/flutter-apk/app-release.apk \
-             android_provider-${{ steps.version.outputs.VERSION }}.apk
+             phonesync-android-${{ steps.version.outputs.VERSION }}.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: android-apk
-          path: android_provider-${{ steps.version.outputs.VERSION }}.apk
+          path: phonesync-android-${{ steps.version.outputs.VERSION }}.apk
 
   build-windows:
     runs-on: windows-latest
@@ -100,12 +100,12 @@ jobs:
         shell: pwsh
         run: |
           Compress-Archive -Path "apps/desktop_client/build/windows/x64/runner/Release/*" `
-            -DestinationPath "desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip"
+            -DestinationPath "phonesync-windows-${{ steps.version.outputs.VERSION }}.zip"
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-app
-          path: desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip
+          path: phonesync-windows-${{ steps.version.outputs.VERSION }}.zip
 
   build-linux:
     runs-on: ubuntu-latest
@@ -133,12 +133,12 @@ jobs:
       - name: Create tarball
         run: |
           cd apps/desktop_client/build/linux/x64/release
-          tar -czvf ../../../../desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz bundle/
+          tar -czvf ../../../../phonesync-linux-${{ steps.version.outputs.VERSION }}.tar.gz bundle/
 
       - uses: actions/upload-artifact@v4
         with:
           name: linux-app
-          path: apps/desktop_client/desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz
+          path: apps/desktop_client/phonesync-linux-${{ steps.version.outputs.VERSION }}.tar.gz
 
   create-release:
     needs: [build-android, build-windows, build-linux]
@@ -170,9 +170,9 @@ jobs:
 
             | Platform | File |
             |----------|------|
-            | Android | `android_provider-${{ steps.version.outputs.VERSION }}.apk` |
-            | Windows | `desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip` |
-            | Linux | `desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz` |
+            | Android | `phonesync-android-${{ steps.version.outputs.VERSION }}.apk` |
+            | Windows | `phonesync-windows-${{ steps.version.outputs.VERSION }}.zip` |
+            | Linux | `phonesync-linux-${{ steps.version.outputs.VERSION }}.tar.gz` |
 
             ### Verification
 

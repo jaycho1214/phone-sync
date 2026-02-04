@@ -73,13 +73,13 @@ PhoneSync creates a **direct, encrypted connection** between your Android phone 
 
 ## Download
 
-Get the latest release from [GitHub Releases](https://github.com/jljm/phone-sync/releases):
+Get the latest release from [GitHub Releases](https://github.com/jaycho1214/phone-sync/releases):
 
 | Platform | Download |
 |----------|----------|
-| Android | `android_provider-x.x.x.apk` |
-| Windows | `desktop_client-windows-x.x.x.zip` |
-| Linux | `desktop_client-linux-x.x.x.tar.gz` |
+| Android | `phonesync-android-x.x.x.apk` |
+| Windows | `phonesync-windows-x.x.x.zip` |
+| Linux | `phonesync-linux-x.x.x.tar.gz` |
 
 **macOS**: Requires local build (Apple Developer certificate needed for distribution). See [Building from Source](#building-from-source).
 
@@ -131,7 +131,7 @@ phone-sync/
 
 ```bash
 # Clone
-git clone https://github.com/jljm/phone-sync.git
+git clone https://github.com/jaycho1214/phone-sync.git
 cd phone-sync
 
 # Android
