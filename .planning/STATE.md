@@ -2,19 +2,19 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-02-03)
+See: .planning/PROJECT.md (updated 2026-02-04)
 
 **Core value:** Phone numbers from Android device exported to Excel on demand, securely over local network
-**Current focus:** PROJECT COMPLETE
+**Current focus:** Milestone v1.1 — CI/CD & Linux
 
 ## Current Position
 
-Phase: 3 of 3 (Desktop Client & Export)
-Plan: 2 of 2 in current phase
-Status: COMPLETE
-Last activity: 2026-02-04 - Completed 03-02-PLAN.md
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-02-04 — Milestone v1.1 started
 
-Progress: [████████████████████] 100%
+Progress: [░░░░░░░░░░░░░░░░░░░░] 0%
 
 ## Performance Metrics
 
@@ -79,9 +79,9 @@ Last session: 2026-02-04T01:20:36Z
 Stopped at: PROJECT COMPLETE
 Resume file: None
 
-## Project Completion Summary
+## Previous Milestone (v1.0 MVP)
 
-**MVP Delivered:**
+**Delivered:**
 - Phase 1: Android data extraction (contacts, SMS, call logs) with HTTP server
 - Phase 2: TLS/HTTPS security with PIN pairing and session tokens
 - Phase 3: Desktop client with sync, local storage, and Excel export

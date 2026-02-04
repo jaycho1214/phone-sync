@@ -2,7 +2,17 @@
 
 ## What This Is
 
-A Flutter-based internal tool for syncing phone numbers from an Android device. The monorepo contains Android, Windows, and Mac apps that communicate over local network. Android serves SMS, call history, and contacts; desktop apps perform incremental sync (only new records) and export to Excel for use in promotional SMS campaigns.
+A Flutter-based internal tool for syncing phone numbers from an Android device. The monorepo contains Android, Windows, Mac, and Linux apps that communicate over local network. Android serves SMS, call history, and contacts; desktop apps perform incremental sync (only new records) and export to Excel for use in promotional SMS campaigns.
+
+## Current Milestone: v1.1 CI/CD & Linux
+
+**Goal:** Automated release builds via GitHub Actions for all platforms (Android APK, macOS, Windows, Linux)
+
+**Target features:**
+- GitHub Actions workflow triggered by version tags
+- Automated builds for Android (APK), macOS, Windows, Linux
+- GitHub Release creation with all artifacts uploaded
+- Version derived from git tag
 
 ## Core Value
 
@@ -32,6 +42,9 @@ Phone numbers from the Android device can be exported to Excel on demand, secure
 - [ ] All entries preserved (no deduplication across sources)
 - [ ] Windows build works
 - [ ] Mac build works
+- [ ] Linux build works
+- [ ] GitHub Actions builds all platforms on version tag
+- [ ] GitHub Release created with APK, macOS, Windows, Linux artifacts
 
 ### Out of Scope
 
@@ -68,6 +81,8 @@ Phone numbers from the Android device can be exported to Excel on demand, secure
 | Keep all entries (no dedup) | Preserve source information for each phone number | — Pending |
 | Direct export (no browse UI) | Simplicity, user just needs Excel output | — Pending |
 | Incremental sync | Large datasets; only fetch new records since last sync | — Pending |
+| GitHub Actions CI/CD | Automated multi-platform builds on tag push | — Pending |
+| Tag-based versioning | Version from git tag (v1.0.0 → 1.0.0), explicit control | — Pending |
 
 ---
-*Last updated: 2026-02-03 after initialization*
+*Last updated: 2026-02-04 after milestone v1.1 start*
