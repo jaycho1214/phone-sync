@@ -7,6 +7,7 @@ import '../services/discovery_service.dart';
 import '../services/pairing_service.dart';
 import '../services/server/http_server.dart';
 import '../services/sms_service.dart';
+import '../services/sync_storage_service.dart';
 
 /// Server state
 class ServerState {
@@ -14,17 +15,9 @@ class ServerState {
   final int port;
   final String? error;
 
-  const ServerState({
-    this.isRunning = false,
-    this.port = 0,
-    this.error,
-  });
+  const ServerState({this.isRunning = false, this.port = 0, this.error});
 
-  ServerState copyWith({
-    bool? isRunning,
-    int? port,
-    String? error,
-  }) {
+  ServerState copyWith({bool? isRunning, int? port, String? error}) {
     return ServerState(
       isRunning: isRunning ?? this.isRunning,
       port: port ?? this.port,
@@ -33,43 +26,44 @@ class ServerState {
   }
 }
 
-class ServerNotifier extends StateNotifier<ServerState> {
-  final DiscoveryService _discoveryService;
-  final ContactsService _contactsService;
-  final SmsService _smsService;
-  final CallLogService _callLogService;
-  final CertificateService _certificateService;
-  final PairingService _pairingService;
+class ServerNotifier extends Notifier<ServerState> {
+  late final DiscoveryService _discoveryService;
+  late final ContactsService _contactsService;
+  late final SmsService _smsService;
+  late final CallLogService _callLogService;
+  late final CertificateService _certificateService;
+  late final PairingService _pairingService;
+  late final SyncStorageService _syncStorageService;
 
   // Use singleton server instance to survive hot reloads
   final PhoneSyncServer _server = PhoneSyncServer();
 
-  ServerNotifier({
-    required DiscoveryService discoveryService,
-    required ContactsService contactsService,
-    required SmsService smsService,
-    required CallLogService callLogService,
-    required CertificateService certificateService,
-    required PairingService pairingService,
-  })  : _discoveryService = discoveryService,
-        _contactsService = contactsService,
-        _smsService = smsService,
-        _callLogService = callLogService,
-        _certificateService = certificateService,
-        _pairingService = pairingService,
-        super(const ServerState()) {
+  @override
+  ServerState build() {
+    _discoveryService = ref.read(discoveryServiceProvider);
+    _contactsService = ref.read(contactsServiceProvider);
+    _smsService = ref.read(smsServiceProvider);
+    _callLogService = ref.read(callLogServiceProvider);
+    _certificateService = ref.read(certificateServiceProvider);
+    _pairingService = ref.read(pairingServiceProvider);
+    _syncStorageService = ref.read(syncStorageServiceProvider);
+
     // Sync state with actual server state on creation (handles hot reload)
-    _syncStateWithServer();
+    // Use Future.microtask to defer state update after build completes
+    Future.microtask(_syncStateWithServer);
+
+    // Note: We don't stop the server on dispose because other providers
+    // might still be using it. The server will be stopped when the app
+    // goes to background via the lifecycle observer.
+
+    return const ServerState();
   }
 
   /// Sync provider state with actual singleton server state.
   /// Called on creation to handle hot reload scenarios.
   void _syncStateWithServer() {
     if (_server.isRunning) {
-      state = ServerState(
-        isRunning: true,
-        port: _server.port,
-      );
+      state = ServerState(isRunning: true, port: _server.port);
     }
   }
 
@@ -81,10 +75,7 @@ class ServerNotifier extends StateNotifier<ServerState> {
   Future<void> startServer() async {
     // If server singleton is already running, just sync state
     if (_server.isRunning) {
-      state = ServerState(
-        isRunning: true,
-        port: _server.port,
-      );
+      state = ServerState(isRunning: true, port: _server.port);
       return;
     }
 
@@ -104,22 +95,17 @@ class ServerNotifier extends StateNotifier<ServerState> {
         smsService: _smsService,
         callLogService: _callLogService,
         pairingService: _pairingService,
+        syncStorageService: _syncStorageService,
         securityContext: securityContext,
       );
 
       final actualPort = _server.port;
 
       // Advertise via mDNS
-      final deviceName = _discoveryService.getDeviceName();
-      await _discoveryService.advertise(
-        deviceName: deviceName,
-        port: actualPort,
-      );
+      final deviceName = await _discoveryService.getDeviceName();
+      await _discoveryService.advertise(deviceName: deviceName, port: actualPort);
 
-      state = ServerState(
-        isRunning: true,
-        port: actualPort,
-      );
+      state = ServerState(isRunning: true, port: actualPort);
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }
@@ -140,14 +126,6 @@ class ServerNotifier extends StateNotifier<ServerState> {
       state = state.copyWith(error: e.toString());
     }
   }
-
-  @override
-  void dispose() {
-    // Note: We don't stop the server on dispose because other providers
-    // might still be using it. The server will be stopped when the app
-    // goes to background via the lifecycle observer.
-    super.dispose();
-  }
 }
 
 // Service providers (simple instances for now)
@@ -157,14 +135,6 @@ final callLogServiceProvider = Provider((ref) => CallLogService());
 final discoveryServiceProvider = Provider((ref) => DiscoveryService());
 final certificateServiceProvider = Provider((ref) => CertificateService());
 final pairingServiceProvider = Provider((ref) => PairingService());
+final syncStorageServiceProvider = Provider((ref) => SyncStorageService());
 
-final serverProvider = StateNotifierProvider<ServerNotifier, ServerState>(
-  (ref) => ServerNotifier(
-    discoveryService: ref.read(discoveryServiceProvider),
-    contactsService: ref.read(contactsServiceProvider),
-    smsService: ref.read(smsServiceProvider),
-    callLogService: ref.read(callLogServiceProvider),
-    certificateService: ref.read(certificateServiceProvider),
-    pairingService: ref.read(pairingServiceProvider),
-  ),
-);
+final serverProvider = NotifierProvider<ServerNotifier, ServerState>(ServerNotifier.new);

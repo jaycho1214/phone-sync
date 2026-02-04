@@ -47,10 +47,4 @@ class PhoneNormalizer {
 
     return null; // Invalid or unrecognized format
   }
-
-  /// Check if a normalized number is a Korean mobile number (010 prefix).
-  /// Works with digits-only format.
-  bool isKoreanMobile(String normalizedNumber) {
-    return normalizedNumber.startsWith('010');
-  }
 }

@@ -17,19 +17,7 @@ class PermissionState {
     this.error,
   });
 
-  bool get hasAnyGranted =>
-      contacts.isGranted || sms.isGranted || callLog.isGranted;
-
-  bool get allPermanentlyDenied =>
-      contacts.isPermanentlyDenied &&
-      sms.isPermanentlyDenied &&
-      callLog.isPermanentlyDenied;
-
-  List<String> get permanentlyDeniedNames => [
-        if (contacts.isPermanentlyDenied) 'Contacts',
-        if (sms.isPermanentlyDenied) 'SMS',
-        if (callLog.isPermanentlyDenied) 'Call Log',
-      ];
+  bool get hasAnyGranted => contacts.isGranted || sms.isGranted || callLog.isGranted;
 
   PermissionState copyWith({
     PermissionStatus? contacts,
@@ -48,8 +36,11 @@ class PermissionState {
   }
 }
 
-class PermissionNotifier extends StateNotifier<PermissionState> {
-  PermissionNotifier() : super(const PermissionState());
+class PermissionNotifier extends Notifier<PermissionState> {
+  @override
+  PermissionState build() {
+    return const PermissionState();
+  }
 
   /// Check current permission status without requesting
   Future<void> checkPermissions() async {
@@ -60,12 +51,7 @@ class PermissionNotifier extends StateNotifier<PermissionState> {
       // Permission.phone covers call log on Android 9+
       final callLog = await Permission.phone.status;
 
-      state = PermissionState(
-        contacts: contacts,
-        sms: sms,
-        callLog: callLog,
-        isLoading: false,
-      );
+      state = PermissionState(contacts: contacts, sms: sms, callLog: callLog, isLoading: false);
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -98,7 +84,6 @@ class PermissionNotifier extends StateNotifier<PermissionState> {
   }
 }
 
-final permissionProvider =
-    StateNotifierProvider<PermissionNotifier, PermissionState>(
-  (ref) => PermissionNotifier(),
+final permissionProvider = NotifierProvider<PermissionNotifier, PermissionState>(
+  PermissionNotifier.new,
 );

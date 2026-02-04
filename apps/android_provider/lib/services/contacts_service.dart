@@ -5,10 +5,7 @@ class ContactsService {
 
   /// Get count of contacts with phone numbers
   Future<int> getContactsWithPhonesCount() async {
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-      withPhoto: false,
-    );
+    final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
     return contacts.where((c) => c.phones.isNotEmpty).length;
   }
 
@@ -18,10 +15,7 @@ class ContactsService {
   Stream<List<Contact>> extractContacts({
     void Function(int current, int total)? onProgress,
   }) async* {
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-      withPhoto: false,
-    );
+    final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
 
     // Filter to contacts with phones
     final withPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
@@ -38,10 +32,7 @@ class ContactsService {
 
   /// Extract phone numbers from contacts
   Future<List<String>> extractPhoneNumbers() async {
-    final contacts = await FlutterContacts.getContacts(
-      withProperties: true,
-      withPhoto: false,
-    );
+    final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
 
     final numbers = <String>[];
     for (final contact in contacts) {

@@ -5,10 +5,14 @@ import '../call_log_service.dart';
 import '../contacts_service.dart';
 import '../pairing_service.dart';
 import '../sms_service.dart';
+import '../sync_storage_service.dart';
 import 'handlers/calls_handler.dart';
 import 'handlers/contacts_handler.dart';
+import 'handlers/counts_handler.dart';
 import 'handlers/pairing_handler.dart';
 import 'handlers/sms_handler.dart';
+import 'handlers/sync_status_handler.dart';
+import 'handlers/unpair_handler.dart';
 import 'middleware/auth_middleware.dart';
 
 /// Create router with data extraction endpoints
@@ -18,6 +22,7 @@ Handler createRouter({
   required SmsService smsService,
   required CallLogService callLogService,
   required PairingService pairingService,
+  required SyncStorageService syncStorageService,
 }) {
   final router = Router();
 
@@ -41,8 +46,25 @@ Handler createRouter({
     return handleCalls(request, callLogService);
   });
 
+  // GET /counts - Get counts for all data types (lightweight)
+  router.get('/counts', (Request request) async {
+    return handleCounts(request, contactsService, smsService, callLogService);
+  });
+
+  // POST /sync/status - Desktop reports sync progress/completion
+  router.post('/sync/status', (Request request) async {
+    return handleSyncStatus(request, syncStorageService);
+  });
+
+  // POST /unpair - Desktop notifies it's unpairing
+  router.post('/unpair', (Request request) async {
+    return handleUnpair(request, pairingService);
+  });
+
   // Health check endpoint (no auth required)
+  // Also updates last activity time for session timeout
   router.get('/health', (Request request) {
+    pairingService.updateLastActivity();
     return Response.ok('{"status": "ok"}', headers: {'Content-Type': 'application/json'});
   });
 

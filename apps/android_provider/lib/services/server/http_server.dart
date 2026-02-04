@@ -1,20 +1,27 @@
 import 'dart:io';
 
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 
 import '../call_log_service.dart';
 import '../contacts_service.dart';
 import '../pairing_service.dart';
 import '../sms_service.dart';
+import '../sync_storage_service.dart';
 import 'routes.dart';
 
 /// HTTP server for serving phone data endpoints.
-/// Uses singleton pattern to prevent multiple server instances (especially on hot reload).
+/// Uses singleton pattern + fixed port to prevent multiple server instances.
+/// Survives hot reload via singleton, handles hot restart via fixed port.
 class PhoneSyncServer {
   // Singleton instance
   static final PhoneSyncServer _instance = PhoneSyncServer._internal();
   factory PhoneSyncServer() => _instance;
   PhoneSyncServer._internal();
+
+  // Fixed port for the server - ensures only one instance even after hot restart
+  static const int _fixedPort = 42829;
+  static const String _portKey = 'phonesync_server_port';
 
   HttpServer? _server;
   int _port = 0;
@@ -25,22 +32,23 @@ class PhoneSyncServer {
   /// Check if the server is running
   bool get isRunning => _server != null;
 
-  /// Start the server on the specified port.
-  /// Use port 0 for dynamic port assignment.
+  /// Start the server on a fixed port.
   /// Pass securityContext for HTTPS, or null for HTTP (testing only).
   ///
-  /// If server is already running, stops it first to prevent duplicates.
+  /// If server is already running, returns immediately.
+  /// Uses fixed port to prevent orphaned servers after hot restart.
   Future<void> start({
-    int port = 0,
+    int port = 0, // Ignored, uses fixed port
     required ContactsService contactsService,
     required SmsService smsService,
     required CallLogService callLogService,
     required PairingService pairingService,
+    required SyncStorageService syncStorageService,
     SecurityContext? securityContext,
   }) async {
-    // Always stop existing server first to prevent duplicates
+    // If this singleton already has a server running, just return
     if (_server != null) {
-      await stop();
+      return;
     }
 
     final router = createRouter(
@@ -48,16 +56,46 @@ class PhoneSyncServer {
       smsService: smsService,
       callLogService: callLogService,
       pairingService: pairingService,
+      syncStorageService: syncStorageService,
     );
 
-    _server = await shelf_io.serve(
-      router.call,
-      InternetAddress.anyIPv4,
-      port,
-      securityContext: securityContext,
-    );
+    // Try to bind to the fixed port
+    // If it fails (port in use from previous hot restart), wait and retry
+    HttpServer? server;
+    for (var attempt = 0; attempt < 3; attempt++) {
+      try {
+        server = await shelf_io.serve(
+          router.call,
+          InternetAddress.anyIPv4,
+          _fixedPort,
+          securityContext: securityContext,
+        );
+        break;
+      } on SocketException catch (e) {
+        if (e.osError?.errorCode == 48 || // macOS: Address already in use
+            e.osError?.errorCode == 98 || // Linux: Address already in use
+            e.message.contains('Address already in use')) {
+          // Port is in use - likely orphaned server from hot restart
+          // Wait a bit for OS to release it, then retry
+          if (attempt < 2) {
+            await Future.delayed(Duration(milliseconds: 500 * (attempt + 1)));
+            continue;
+          }
+        }
+        rethrow;
+      }
+    }
 
-    _port = _server!.port;
+    if (server == null) {
+      throw Exception('Failed to start server after multiple attempts');
+    }
+
+    _server = server;
+    _port = server.port;
+
+    // Store port for reference
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_portKey, _port);
   }
 
   /// Stop the server
@@ -67,6 +105,10 @@ class PhoneSyncServer {
       _server = null; // Clear reference immediately to prevent race conditions
       _port = 0;
       await server.close(force: true);
+
+      // Clear stored port
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_portKey);
     }
   }
 }

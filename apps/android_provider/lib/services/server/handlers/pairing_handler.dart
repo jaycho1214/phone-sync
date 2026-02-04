@@ -5,13 +5,14 @@ import 'package:shelf/shelf.dart';
 import '../../pairing_service.dart';
 
 /// Handle POST /pair endpoint
-/// Accepts JSON: {"pin": "123456"}
+/// Accepts JSON: {"pin": "123456", "clientName": "MyDesktop"} (clientName optional)
 /// Returns: {"status": "paired", "sessionToken": "..."} or 401 error
 Future<Response> handlePair(Request request, PairingService service) async {
   try {
     final body = await request.readAsString();
     final json = jsonDecode(body) as Map<String, dynamic>;
     final pin = json['pin'] as String?;
+    final clientName = json['clientName'] as String?;
 
     if (pin == null) {
       return Response(
@@ -30,14 +31,11 @@ Future<Response> handlePair(Request request, PairingService service) async {
     }
 
     // Complete pairing and get session token
-    service.completePairing();
+    service.completePairing(clientName: clientName);
     final token = service.state?.sessionToken;
 
     return Response.ok(
-      jsonEncode({
-        'status': 'paired',
-        'sessionToken': token,
-      }),
+      jsonEncode({'status': 'paired', 'sessionToken': token}),
       headers: {'Content-Type': 'application/json'},
     );
   } catch (e) {

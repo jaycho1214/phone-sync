@@ -11,12 +11,14 @@ class PairingUIState {
   final DateTime? expiresAt;
   final bool isPaired;
   final Duration? timeRemaining;
+  final String? clientName;
 
   const PairingUIState({
     this.pin,
     this.expiresAt,
     this.isPaired = false,
     this.timeRemaining,
+    this.clientName,
   });
 
   PairingUIState copyWith({
@@ -24,12 +26,14 @@ class PairingUIState {
     DateTime? expiresAt,
     bool? isPaired,
     Duration? timeRemaining,
+    String? clientName,
   }) {
     return PairingUIState(
       pin: pin ?? this.pin,
       expiresAt: expiresAt ?? this.expiresAt,
       isPaired: isPaired ?? this.isPaired,
       timeRemaining: timeRemaining ?? this.timeRemaining,
+      clientName: clientName ?? this.clientName,
     );
   }
 
@@ -48,11 +52,64 @@ class PairingUIState {
   }
 }
 
-class PairingNotifier extends StateNotifier<PairingUIState> {
-  final PairingService _pairingService;
+class PairingNotifier extends Notifier<PairingUIState> {
+  late final PairingService _pairingService;
   Timer? _countdownTimer;
+  Timer? _sessionCheckTimer;
+  bool _isDisposed = false;
 
-  PairingNotifier(this._pairingService) : super(const PairingUIState());
+  @override
+  PairingUIState build() {
+    final serverNotifier = ref.read(serverProvider.notifier);
+    _pairingService = serverNotifier.pairingService;
+    _isDisposed = false;
+
+    // Listen for pairing completion from HTTP handler
+    _pairingService.setOnPairingComplete(_onPairingComplete);
+    // Listen for session reset (unpair or timeout)
+    _pairingService.setOnSessionReset(_onSessionReset);
+    // Start periodic session timeout check
+    _startSessionTimeoutCheck();
+
+    // Register cleanup on dispose
+    ref.onDispose(() {
+      _isDisposed = true;
+      _countdownTimer?.cancel();
+      _sessionCheckTimer?.cancel();
+      _pairingService.setOnPairingComplete(null);
+      _pairingService.setOnSessionReset(null);
+    });
+
+    return const PairingUIState();
+  }
+
+  void _onPairingComplete(PairingState serviceState) {
+    if (_isDisposed) return;
+    _countdownTimer?.cancel();
+    state = PairingUIState(
+      pin: serviceState.pin,
+      expiresAt: serviceState.expiresAt,
+      isPaired: true,
+      clientName: serviceState.clientName,
+    );
+  }
+
+  void _onSessionReset() {
+    if (_isDisposed) return;
+    // Session was reset - generate new PIN and show pairing UI
+    generateNewPin();
+  }
+
+  void _startSessionTimeoutCheck() {
+    _sessionCheckTimer?.cancel();
+    // Check every 10 seconds for session timeout (timeout is 30 seconds)
+    _sessionCheckTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (_isDisposed) return;
+      if (state.isPaired) {
+        _pairingService.checkSessionTimeout();
+      }
+    });
+  }
 
   /// Generate a new PIN and start countdown timer
   void generateNewPin() {
@@ -78,37 +135,16 @@ class PairingNotifier extends StateNotifier<PairingUIState> {
   }
 
   void _updateTimeRemaining() {
+    if (_isDisposed) return;
     if (state.expiresAt == null) return;
 
     final remaining = state.expiresAt!.difference(DateTime.now());
 
-    if (remaining.isNegative) {
+    if (remaining.isNegative || remaining.inSeconds <= 0) {
       // PIN expired - auto-generate a new one
       generateNewPin();
     } else {
       state = state.copyWith(timeRemaining: remaining);
-    }
-  }
-
-  /// Update state when pairing succeeds (called externally)
-  void onPairingSuccess() {
-    _countdownTimer?.cancel();
-    state = state.copyWith(isPaired: true);
-  }
-
-  /// Sync state from PairingService
-  void syncFromService() {
-    final serviceState = _pairingService.state;
-    if (serviceState != null) {
-      state = PairingUIState(
-        pin: serviceState.pin,
-        expiresAt: serviceState.expiresAt,
-        isPaired: serviceState.isPaired,
-        timeRemaining: serviceState.expiresAt.difference(DateTime.now()),
-      );
-      if (!serviceState.isPaired && !serviceState.isPinExpired) {
-        _startCountdown();
-      }
     }
   }
 
@@ -118,18 +154,7 @@ class PairingNotifier extends StateNotifier<PairingUIState> {
     _pairingService.reset();
     state = const PairingUIState();
   }
-
-  @override
-  void dispose() {
-    _countdownTimer?.cancel();
-    super.dispose();
-  }
 }
 
 /// Provider that uses PairingService from serverProvider
-final pairingProvider = StateNotifierProvider<PairingNotifier, PairingUIState>(
-  (ref) {
-    final serverNotifier = ref.read(serverProvider.notifier);
-    return PairingNotifier(serverNotifier.pairingService);
-  },
-);
+final pairingProvider = NotifierProvider<PairingNotifier, PairingUIState>(PairingNotifier.new);

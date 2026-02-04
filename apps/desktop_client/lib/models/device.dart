@@ -8,11 +8,7 @@ class Device {
   final String host;
   final int port;
 
-  const Device({
-    required this.name,
-    required this.host,
-    required this.port,
-  });
+  const Device({required this.name, required this.host, required this.port});
 
   /// Create Device from nsd Service.
   factory Device.fromService(nsd.Service service) {
@@ -31,19 +27,11 @@ class Device {
       }
     }
 
-    return Device(
-      name: service.name ?? 'Unknown Device',
-      host: host,
-      port: service.port ?? 0,
-    );
+    return Device(name: service.name ?? 'Unknown Device', host: host, port: service.port ?? 0);
   }
 
   /// Create Device from manual IP:port entry.
-  factory Device.manual({
-    required String host,
-    required int port,
-    String name = 'Manual Device',
-  }) {
+  factory Device.manual({required String host, required int port, String name = 'Manual Device'}) {
     return Device(name: name, host: host, port: port);
   }
 

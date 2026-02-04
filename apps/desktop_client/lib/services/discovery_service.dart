@@ -14,17 +14,12 @@ class DiscoveryService {
   List<Device> get devices => List.unmodifiable(_devices);
 
   /// Start mDNS discovery for PhoneSync devices.
-  Future<void> startDiscovery({
-    required void Function(List<Device>) onDevicesChanged,
-  }) async {
+  Future<void> startDiscovery({required void Function(List<Device>) onDevicesChanged}) async {
     _onDevicesChanged = onDevicesChanged;
     _devices.clear();
 
     try {
-      _discovery = await nsd.startDiscovery(
-        serviceType,
-        ipLookupType: nsd.IpLookupType.any,
-      );
+      _discovery = await nsd.startDiscovery(serviceType, ipLookupType: nsd.IpLookupType.any);
 
       _discovery!.addServiceListener((service, status) {
         if (status == nsd.ServiceStatus.found) {

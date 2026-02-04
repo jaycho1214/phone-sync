@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../app.dart';
 import '../models/device.dart';
 import '../providers/discovery_provider.dart';
 import '../providers/session_provider.dart';
@@ -21,11 +22,17 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   bool _showManualEntry = false;
   Timer? _manualEntryTimer;
   bool _checkedSession = false;
+  DiscoveryNotifier? _discoveryNotifier;
 
   @override
   void initState() {
     super.initState();
-    _checkExistingSession();
+    // Delay to avoid modifying providers during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Save notifier reference for use in dispose
+      _discoveryNotifier = ref.read(discoveryProvider.notifier);
+      _checkExistingSession();
+    });
   }
 
   Future<void> _checkExistingSession() async {
@@ -38,23 +45,35 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     }
 
     final session = ref.read(sessionProvider);
-    _checkedSession = true;
 
+    // If there's a paired device, verify the session is still valid
     if (session.isPaired && session.device != null) {
-      // Check if device is online
-      final sessionNotifier = ref.read(sessionProvider.notifier);
-      final isOnline = await sessionNotifier.checkDeviceOnline();
+      final syncService = session.syncService;
+      bool isValid = false;
+
+      if (syncService != null) {
+        try {
+          isValid = await syncService.validateSession();
+        } catch (_) {
+          isValid = false;
+        }
+      }
 
       if (!mounted) return;
 
-      if (isOnline) {
-        // Auto-navigate to home
-        Navigator.of(context).pushReplacementNamed('/home');
-        return;
+      if (isValid) {
+        // Session is valid, add device to discovery list with Paired badge
+        ref.read(discoveryProvider.notifier).addKnownDevice(session.device!);
+      } else {
+        // Session expired, clear it so badge won't show
+        await ref.read(sessionProvider.notifier).unpair();
       }
     }
 
-    // Start discovery
+    _checkedSession = true;
+
+    // Always start discovery and show device list
+    // User must explicitly tap a device to go to home screen
     _startDiscovery();
   }
 
@@ -76,11 +95,41 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
   void dispose() {
     _manualEntryController.dispose();
     _manualEntryTimer?.cancel();
-    ref.read(discoveryProvider.notifier).stopDiscovery();
+    _discoveryNotifier?.stopDiscovery();
     super.dispose();
   }
 
-  void _selectDevice(Device device) {
+  Future<void> _selectDevice(Device device) async {
+    final session = ref.read(sessionProvider);
+
+    // If this device is already paired, verify connection first
+    if (session.isPaired && session.device != null) {
+      final pairedDevice = session.device!;
+      if (pairedDevice.host == device.host && pairedDevice.port == device.port) {
+        // Check if session is still valid
+        final syncService = session.syncService;
+        if (syncService != null) {
+          try {
+            final isValid = await syncService.validateSession();
+            if (!mounted) return;
+
+            if (isValid) {
+              Navigator.of(context).pushReplacementNamed('/home');
+              return;
+            }
+          } catch (_) {
+            // Session is invalid, fall through to pairing
+          }
+        }
+
+        // Session expired - clear it and go to pairing
+        if (!mounted) return;
+        await ref.read(sessionProvider.notifier).unpair();
+      }
+    }
+
+    // Go to pairing screen
+    if (!mounted) return;
     Navigator.of(context).pushNamed('/pairing', arguments: device);
   }
 
@@ -110,15 +159,20 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     // Show loading while checking session
     if (!_checkedSession || sessionState.isLoading) {
       return Scaffold(
+        backgroundColor: AppColors.background,
         body: Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
+              const SizedBox(
+                width: 32,
+                height: 32,
+                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textMuted),
+              ),
+              const SizedBox(height: 20),
+              const Text(
                 'Checking for paired device...',
-                style: Theme.of(context).textTheme.bodyLarge,
+                style: TextStyle(fontSize: 14, color: AppColors.textSecondary),
               ),
             ],
           ),
@@ -127,55 +181,119 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     }
 
     return Scaffold(
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const SizedBox(height: 48),
             // Header
-            Text(
-              'PhoneSync',
-              style: Theme.of(context).textTheme.headlineLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Connect to your Android device',
-              style: Theme.of(context).textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 32),
+            _buildHeader(),
 
-            // Device list or searching indicator
+            // Main content
             Expanded(
-              child: _buildContent(discoveryState),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        const SizedBox(height: 24),
+
+                        // Device list or searching indicator
+                        Expanded(child: _buildContent(discoveryState, sessionState)),
+
+                        // Manual entry section
+                        if (_showManualEntry || discoveryState.devices.isEmpty)
+                          _buildManualEntry(discoveryState),
+
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
-
-            // Manual entry section
-            if (_showManualEntry || discoveryState.devices.isEmpty)
-              _buildManualEntry(discoveryState),
-
-            const SizedBox(height: 24),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildContent(DiscoveryState state) {
+  Widget _buildHeader() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      decoration: const BoxDecoration(
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
+      ),
+      child: Row(
+        children: [
+          // Logo
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset('assets/logo.png', width: 40, height: 40),
+          ),
+          const SizedBox(width: 12),
+          // Title
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'PhoneSync',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                  letterSpacing: -0.5,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Connect to your Android device',
+                style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(DiscoveryState state, SessionState sessionState) {
     if (state.devices.isEmpty && state.isDiscovering) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 24),
-            Text(
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textMuted),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
               'Searching for devices...',
-              style: Theme.of(context).textTheme.bodyLarge,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Make sure your Android device is on the same network',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -187,84 +305,165 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              Icons.devices_other,
-              size: 64,
-              color: Colors.grey.shade400,
+            Container(
+              width: 64,
+              height: 64,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceAlt,
+                borderRadius: BorderRadius.circular(32),
+              ),
+              child: const Icon(Icons.devices_other, size: 28, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               'No devices found',
-              style: Theme.of(context).textTheme.titleLarge,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textPrimary,
+              ),
             ),
             const SizedBox(height: 8),
-            Text(
+            const Text(
               'Enter the IP address manually below',
-              style: Theme.of(context).textTheme.bodyMedium,
+              style: TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      itemCount: state.devices.length,
-      itemBuilder: (context, index) {
-        final device = state.devices[index];
-        return DeviceCard(
-          device: device,
-          onTap: () => _selectDevice(device),
-        );
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section label
+        const Text(
+          'AVAILABLE DEVICES',
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: AppColors.textMuted,
+            letterSpacing: 1,
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Device list
+        Expanded(
+          child: ListView.separated(
+            itemCount: state.devices.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 8),
+            itemBuilder: (context, index) {
+              final device = state.devices[index];
+              final isPaired =
+                  sessionState.isPaired &&
+                  sessionState.device != null &&
+                  sessionState.device!.host == device.host &&
+                  sessionState.device!.port == device.port;
+
+              return DeviceCard(
+                device: device,
+                onTap: () => _selectDevice(device),
+                isPaired: isPaired,
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
   Widget _buildManualEntry(DiscoveryState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (state.devices.isNotEmpty) ...[
-            const Divider(height: 32),
-            Text(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (state.devices.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Center(
+            child: Text(
               "Can't find your device?",
-              style: Theme.of(context).textTheme.bodyMedium,
-              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
             ),
-            const SizedBox(height: 8),
-          ],
-          Row(
+          ),
+          const SizedBox(height: 12),
+        ],
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: TextField(
-                  controller: _manualEntryController,
-                  decoration: InputDecoration(
-                    hintText: '192.168.1.100:8443',
-                    labelText: 'IP:Port',
-                    errorText: state.error,
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        _manualEntryController.clear();
-                        ref.read(discoveryProvider.notifier).clearError();
-                      },
-                    ),
-                  ),
-                  keyboardType: TextInputType.text,
-                  onSubmitted: (_) => _addManualDevice(),
+              const Text(
+                'MANUAL ENTRY',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textMuted,
+                  letterSpacing: 1,
                 ),
               ),
-              const SizedBox(width: 12),
-              ElevatedButton(
-                onPressed: _addManualDevice,
-                child: const Text('Connect'),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _manualEntryController,
+                      decoration: InputDecoration(
+                        hintText: '192.168.1.100:42829',
+                        errorText: state.error,
+                        filled: true,
+                        fillColor: AppColors.surfaceAlt,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.textPrimary, width: 1.5),
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      ),
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontFamily: 'monospace',
+                        color: AppColors.textPrimary,
+                      ),
+                      keyboardType: TextInputType.text,
+                      onSubmitted: (_) => _addManualDevice(),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  GestureDetector(
+                    onTap: _addManualDevice,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.textPrimary,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Connect',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

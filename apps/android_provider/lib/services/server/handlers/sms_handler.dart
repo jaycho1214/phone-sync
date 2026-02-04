@@ -27,10 +27,7 @@ Future<Response> handleSms(Request request, SmsService service) async {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    return Response.ok(
-      responseBody,
-      headers: {'Content-Type': 'application/json'},
-    );
+    return Response.ok(responseBody, headers: {'Content-Type': 'application/json'});
   } catch (e) {
     return Response.internalServerError(
       body: jsonEncode({'error': e.toString()}),
@@ -40,9 +37,5 @@ Future<Response> handleSms(Request request, SmsService service) async {
 }
 
 Map<String, dynamic> _smsToJson(SmsMessage message) {
-  return {
-    'address': message.address,
-    'date': message.date,
-    'type': message.type?.name,
-  };
+  return {'address': message.address, 'date': message.date, 'type': message.type?.name};
 }

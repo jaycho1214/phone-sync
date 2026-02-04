@@ -6,24 +6,8 @@ import '../providers/extraction_provider.dart';
 import '../providers/pairing_provider.dart';
 import '../providers/permission_provider.dart';
 import '../providers/server_provider.dart';
-import '../providers/sync_state_provider.dart';
-
-// Professional light color palette
-class _Colors {
-  static const background = Color(0xFFF8F9FA);
-  static const surface = Color(0xFFFFFFFF);
-  static const surfaceAlt = Color(0xFFF1F3F4);
-  static const border = Color(0xFFE5E7EB);
-  static const textPrimary = Color(0xFF111827);
-  static const textSecondary = Color(0xFF6B7280);
-  static const textMuted = Color(0xFF9CA3AF);
-  static const accent = Color(0xFF10B981);
-  static const accentLight = Color(0xFFD1FAE5);
-  static const error = Color(0xFFEF4444);
-  static const errorLight = Color(0xFFFEE2E2);
-  static const warning = Color(0xFFF59E0B);
-  static const warningLight = Color(0xFFFEF3C7);
-}
+import '../providers/sync_status_provider.dart';
+import '../theme/app_colors.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -32,8 +16,7 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen>
-    with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -41,7 +24,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(permissionProvider.notifier).checkPermissions();
-      ref.read(syncStateProvider.notifier).loadSyncState();
       // Auto-start server by default (safe to call if already running)
       _autoStartServerIfReady();
     });
@@ -76,7 +58,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     // Refresh counts if permissions granted
     if (permissions.hasAnyGranted) {
-      ref.read(extractionProvider.notifier).refreshCounts(
+      ref
+          .read(extractionProvider.notifier)
+          .refreshCounts(
             hasContacts: permissions.contacts.isGranted,
             hasSms: permissions.sms.isGranted,
             hasCallLog: permissions.callLog.isGranted,
@@ -88,12 +72,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final permissions = ref.watch(permissionProvider);
     final extraction = ref.watch(extractionProvider);
-    final syncState = ref.watch(syncStateProvider);
     final server = ref.watch(serverProvider);
     final pairing = ref.watch(pairingProvider);
+    final desktopActivity = ref.watch(desktopActivityProvider);
 
     return Scaffold(
-      backgroundColor: _Colors.background,
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: Column(
           children: [
@@ -107,9 +91,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // PIN Section
+                    // PIN / Connection Section
                     if (server.isRunning) ...[
-                      _buildPinSection(pairing),
+                      _buildConnectionSection(pairing, desktopActivity),
                       const SizedBox(height: 20),
                     ],
 
@@ -125,23 +109,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     const SizedBox(height: 8),
                     _buildDataCards(permissions, extraction),
 
-                    const SizedBox(height: 20),
-
-                    // Sync Status 1xn cards
-                    _buildSectionLabel('LAST SYNCED'),
-                    const SizedBox(height: 8),
-                    _buildSyncCards(syncState),
-
                     // Error display
                     if (server.error != null ||
                         extraction.error != null ||
                         permissions.error != null) ...[
                       const SizedBox(height: 20),
                       _buildErrorBanner(
-                        server.error ??
-                            extraction.error ??
-                            permissions.error ??
-                            '',
+                        server.error ?? extraction.error ?? permissions.error ?? '',
                       ),
                     ],
 
@@ -166,26 +140,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
-        color: _Colors.surface,
-        border: Border(
-          bottom: BorderSide(color: _Colors.border, width: 1),
-        ),
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.border, width: 1)),
       ),
       child: Row(
         children: [
-          // Logo/Icon
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: _Colors.textPrimary,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: const Icon(
-              Icons.sync_alt,
-              color: Colors.white,
-              size: 22,
-            ),
+          // Logo
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.asset('assets/logo.png', width: 40, height: 40),
           ),
           const SizedBox(width: 12),
           // Title and status
@@ -198,7 +161,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
-                    color: _Colors.textPrimary,
+                    color: AppColors.textPrimary,
                     letterSpacing: -0.5,
                   ),
                 ),
@@ -210,7 +173,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: server.isRunning ? _Colors.accent : _Colors.textMuted,
+                        color: server.isRunning ? AppColors.accent : AppColors.textMuted,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -218,7 +181,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                       server.isRunning ? 'Active on port ${server.port}' : 'Offline',
                       style: TextStyle(
                         fontSize: 12,
-                        color: server.isRunning ? _Colors.accent : _Colors.textMuted,
+                        color: server.isRunning ? AppColors.accent : AppColors.textMuted,
                       ),
                     ),
                   ],
@@ -240,7 +203,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: server.isRunning ? _Colors.surfaceAlt : _Colors.textPrimary,
+                color: server.isRunning ? AppColors.surfaceAlt : AppColors.textPrimary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -248,7 +211,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: server.isRunning ? _Colors.textSecondary : Colors.white,
+                  color: server.isRunning ? AppColors.textSecondary : Colors.white,
                 ),
               ),
             ),
@@ -264,21 +227,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       style: const TextStyle(
         fontSize: 11,
         fontWeight: FontWeight.w600,
-        color: _Colors.textMuted,
+        color: AppColors.textMuted,
         letterSpacing: 1,
       ),
     );
   }
 
-  Widget _buildPinSection(PairingUIState pairing) {
+  Widget _buildConnectionSection(PairingUIState pairing, DesktopActivityState activity) {
     if (pairing.isPaired) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: _Colors.accentLight,
+          color: AppColors.accentLight,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _Colors.accent.withValues(alpha: 0.3)),
+          border: Border.all(color: AppColors.accent.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
@@ -286,32 +249,44 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: _Colors.accent,
+                color: AppColors.accent,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(
-                Icons.check,
-                color: Colors.white,
-                size: 28,
-              ),
+              child: activity.isExporting
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    )
+                  : const Icon(Icons.check, color: Colors.white, size: 28),
             ),
             const SizedBox(height: 12),
-            const Text(
-              'Connected',
-              style: TextStyle(
+            Text(
+              activity.isExporting ? 'Exporting' : 'Connected',
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w600,
-                color: _Colors.textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 4),
-            const Text(
-              'Desktop client is paired',
-              style: TextStyle(
-                fontSize: 13,
-                color: _Colors.textSecondary,
+            if (activity.isExporting)
+              Text(
+                activity.exportStatusMessage,
+                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.computer, size: 14, color: AppColors.textSecondary),
+                  const SizedBox(width: 6),
+                  Text(
+                    pairing.clientName ?? 'Desktop',
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                  ),
+                ],
               ),
-            ),
           ],
         ),
       );
@@ -321,18 +296,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: _Colors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
           const Text(
             'Pairing Code',
-            style: TextStyle(
-              fontSize: 13,
-              color: _Colors.textSecondary,
-            ),
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
           ),
           const SizedBox(height: 12),
           // Large PIN display
@@ -348,14 +320,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               Icon(
                 Icons.schedule,
                 size: 14,
-                color: pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
+                color: pairing.isPinExpired ? AppColors.error : AppColors.textMuted,
               ),
               const SizedBox(width: 4),
               Text(
                 pairing.isPinExpired ? 'Expired' : pairing.formattedTimeRemaining,
                 style: TextStyle(
                   fontSize: 12,
-                  color: pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
+                  color: pairing.isPinExpired ? AppColors.error : AppColors.textMuted,
                 ),
               ),
               const SizedBox(width: 16),
@@ -363,18 +335,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                 onTap: () => ref.read(pairingProvider.notifier).generateNewPin(),
                 child: Row(
                   children: [
-                    Icon(
-                      Icons.refresh,
-                      size: 14,
-                      color: _Colors.accent,
-                    ),
+                    Icon(Icons.refresh, size: 14, color: AppColors.accent),
                     const SizedBox(width: 4),
                     Text(
                       'New code',
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
-                        color: _Colors.accent,
+                        color: AppColors.accent,
                       ),
                     ),
                   ],
@@ -394,9 +362,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
         width: 44,
         height: 56,
         decoration: BoxDecoration(
-          color: _Colors.surfaceAlt,
+          color: AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: _Colors.border),
+          border: Border.all(color: AppColors.border),
         ),
         child: Center(
           child: Text(
@@ -404,7 +372,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             style: const TextStyle(
               fontSize: 28,
               fontWeight: FontWeight.w600,
-              color: _Colors.textPrimary,
+              color: AppColors.textPrimary,
               fontFamily: 'RobotoMono',
             ),
           ),
@@ -416,16 +384,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget _buildPermissionsCard(PermissionState permissions) {
     return Container(
       decoration: BoxDecoration(
-        color: _Colors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Expanded(child: _buildPermissionItem('Contacts', permissions.contacts)),
-          Container(width: 1, height: 60, color: _Colors.border),
+          Container(width: 1, height: 60, color: AppColors.border),
           Expanded(child: _buildPermissionItem('SMS', permissions.sms)),
-          Container(width: 1, height: 60, color: _Colors.border),
+          Container(width: 1, height: 60, color: AppColors.border),
           Expanded(child: _buildPermissionItem('Calls', permissions.callLog)),
         ],
       ),
@@ -441,23 +409,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     IconData icon;
 
     if (isGranted) {
-      iconColor = _Colors.accent;
-      bgColor = _Colors.accentLight;
+      iconColor = AppColors.accent;
+      bgColor = AppColors.accentLight;
       icon = Icons.check_circle;
     } else if (isDenied) {
-      iconColor = _Colors.error;
-      bgColor = _Colors.errorLight;
+      iconColor = AppColors.error;
+      bgColor = AppColors.errorLight;
       icon = Icons.cancel;
     } else {
-      iconColor = _Colors.warning;
-      bgColor = _Colors.warningLight;
+      iconColor = AppColors.warning;
+      bgColor = AppColors.warningLight;
       icon = Icons.warning_rounded;
     }
 
     return GestureDetector(
-      onTap: !isGranted
-          ? () => ref.read(permissionProvider.notifier).openSettings()
-          : null,
+      onTap: !isGranted ? () => ref.read(permissionProvider.notifier).openSettings() : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
@@ -465,20 +431,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             Container(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(
-                color: bgColor,
-                borderRadius: BorderRadius.circular(16),
-              ),
+              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
               child: Icon(icon, size: 18, color: iconColor),
             ),
             const SizedBox(height: 6),
-            Text(
-              label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: _Colors.textSecondary,
-              ),
-            ),
+            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
           ],
         ),
       ),
@@ -486,36 +443,61 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildDataCards(PermissionState permissions, ExtractionState extraction) {
-    return Row(
+    final hasAnyPermission =
+        permissions.contacts.isGranted ||
+        permissions.sms.isGranted ||
+        permissions.callLog.isGranted;
+
+    return Column(
       children: [
-        Expanded(
-          child: _buildDataCard(
-            'Contacts',
-            Icons.person_outline,
-            permissions.contacts.isGranted ? extraction.contactCount : null,
-            !permissions.contacts.isGranted,
-            extraction.isLoading,
-          ),
+        // First row: Contacts and SMS
+        Row(
+          children: [
+            Expanded(
+              child: _buildDataCard(
+                'Contacts',
+                Icons.person_outline,
+                permissions.contacts.isGranted ? extraction.contactCount : null,
+                !permissions.contacts.isGranted,
+                extraction.isLoading,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDataCard(
+                'SMS',
+                Icons.message_outlined,
+                permissions.sms.isGranted ? extraction.smsCount : null,
+                !permissions.sms.isGranted,
+                extraction.isLoading,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildDataCard(
-            'SMS',
-            Icons.message_outlined,
-            permissions.sms.isGranted ? extraction.smsCount : null,
-            !permissions.sms.isGranted,
-            extraction.isLoading,
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildDataCard(
-            'Calls',
-            Icons.phone_outlined,
-            permissions.callLog.isGranted ? extraction.callLogCount : null,
-            !permissions.callLog.isGranted,
-            extraction.isLoading,
-          ),
+        const SizedBox(height: 8),
+        // Second row: Calls and Phone Numbers
+        Row(
+          children: [
+            Expanded(
+              child: _buildDataCard(
+                'Calls',
+                Icons.phone_outlined,
+                permissions.callLog.isGranted ? extraction.callLogCount : null,
+                !permissions.callLog.isGranted,
+                extraction.isLoading,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildDataCard(
+                'Phone Numbers',
+                Icons.dialpad,
+                hasAnyPermission ? extraction.phoneNumberCount : null,
+                !hasAnyPermission,
+                extraction.isLoading,
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -531,23 +513,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: _Colors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: _Colors.textMuted),
+          Icon(icon, size: 20, color: AppColors.textMuted),
           const SizedBox(height: 12),
           if (isLoading && !noPermission)
             const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                color: _Colors.textMuted,
-              ),
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
             )
           else
             Text(
@@ -555,78 +534,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w600,
-                color: _Colors.textPrimary,
+                color: AppColors.textPrimary,
               ),
             ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: _Colors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSyncCards(SyncState syncState) {
-    return Row(
-      children: [
-        Expanded(
-          child: _buildSyncCard(
-            'Contacts',
-            syncState.formatLastSync(syncState.contactsLastSync),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSyncCard(
-            'SMS',
-            syncState.formatLastSync(syncState.smsLastSync),
-          ),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: _buildSyncCard(
-            'Calls',
-            syncState.formatLastSync(syncState.callLogLastSync),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSyncCard(String label, String time) {
-    final isNever = time == 'Never';
-
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: _Colors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: const TextStyle(
-              fontSize: 11,
-              color: _Colors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            time,
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-              color: isNever ? _Colors.textMuted : _Colors.textPrimary,
-            ),
-          ),
+          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
         ],
       ),
     );
@@ -647,22 +559,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: _Colors.errorLight,
+        color: AppColors.errorLight,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: _Colors.error.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, size: 18, color: _Colors.error),
+          const Icon(Icons.error_outline, size: 18, color: AppColors.error),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(
-              error,
-              style: const TextStyle(
-                fontSize: 13,
-                color: _Colors.error,
-              ),
-            ),
+            child: Text(error, style: const TextStyle(fontSize: 13, color: AppColors.error)),
           ),
         ],
       ),
@@ -673,9 +579,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: _Colors.surface,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _Colors.border),
+        border: Border.all(color: AppColors.border),
       ),
       child: Column(
         children: [
@@ -683,14 +589,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: _Colors.surfaceAlt,
+              color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(28),
             ),
-            child: const Icon(
-              Icons.lock_outline,
-              color: _Colors.textMuted,
-              size: 28,
-            ),
+            child: const Icon(Icons.lock_outline, color: AppColors.textMuted, size: 28),
           ),
           const SizedBox(height: 16),
           const Text(
@@ -698,26 +600,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: _Colors.textPrimary,
+              color: AppColors.textPrimary,
             ),
           ),
           const SizedBox(height: 6),
           const Text(
-            'Grant access to sync your phone data',
-            style: TextStyle(
-              fontSize: 13,
-              color: _Colors.textSecondary,
-            ),
+            'Grant access to export your phone data',
+            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
           GestureDetector(
             onTap: () async {
-              await ref
-                  .read(permissionProvider.notifier)
-                  .requestAllPermissions();
+              await ref.read(permissionProvider.notifier).requestAllPermissions();
               final newPerms = ref.read(permissionProvider);
-              await ref.read(extractionProvider.notifier).refreshCounts(
+              await ref
+                  .read(extractionProvider.notifier)
+                  .refreshCounts(
                     hasContacts: newPerms.contacts.isGranted,
                     hasSms: newPerms.sms.isGranted,
                     hasCallLog: newPerms.callLog.isGranted,
@@ -726,16 +625,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: _Colors.textPrimary,
+                color: AppColors.textPrimary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
                 'Grant Permissions',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white,
-                ),
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
               ),
             ),
           ),

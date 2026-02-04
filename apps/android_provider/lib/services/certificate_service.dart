@@ -48,10 +48,7 @@ class CertificateService {
     final publicKey = keyPair.publicKey as RSAPublicKey;
 
     // Create CSR (Certificate Signing Request)
-    final dn = {
-      'CN': 'PhoneSync Device',
-      'O': 'JLJM PhoneSync',
-    };
+    final dn = {'CN': 'PhoneSync Device', 'O': 'JLJM PhoneSync'};
     final csr = X509Utils.generateRsaCsrPem(dn, privateKey, publicKey);
 
     // Generate self-signed certificate valid for 365 days

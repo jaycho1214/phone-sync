@@ -9,17 +9,9 @@ class DiscoveryState {
   final bool isDiscovering;
   final String? error;
 
-  const DiscoveryState({
-    this.devices = const [],
-    this.isDiscovering = false,
-    this.error,
-  });
+  const DiscoveryState({this.devices = const [], this.isDiscovering = false, this.error});
 
-  DiscoveryState copyWith({
-    List<Device>? devices,
-    bool? isDiscovering,
-    String? error,
-  }) {
+  DiscoveryState copyWith({List<Device>? devices, bool? isDiscovering, String? error}) {
     return DiscoveryState(
       devices: devices ?? this.devices,
       isDiscovering: isDiscovering ?? this.isDiscovering,
@@ -29,10 +21,16 @@ class DiscoveryState {
 }
 
 /// Notifier for device discovery state.
-class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
-  final DiscoveryService _service = DiscoveryService();
+class DiscoveryNotifier extends Notifier<DiscoveryState> {
+  late final DiscoveryService _service;
+  Device? _knownDevice; // Paired device to always show
 
-  DiscoveryNotifier() : super(const DiscoveryState());
+  @override
+  DiscoveryState build() {
+    _service = DiscoveryService();
+    ref.onDispose(() => _service.dispose());
+    return const DiscoveryState();
+  }
 
   /// Start discovering devices on the local network.
   Future<void> startDiscovery() async {
@@ -40,9 +38,31 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
 
     await _service.startDiscovery(
       onDevicesChanged: (devices) {
-        state = state.copyWith(devices: List.from(devices));
+        // Merge discovered devices with known device
+        final merged = _mergeWithKnownDevice(devices);
+        state = state.copyWith(devices: merged);
       },
     );
+
+    // After discovery starts, add known device if we have one
+    if (_knownDevice != null) {
+      _service.addManualDevice(_knownDevice!);
+    }
+  }
+
+  /// Merge discovered devices with known device, avoiding duplicates.
+  List<Device> _mergeWithKnownDevice(List<Device> discovered) {
+    if (_knownDevice == null) return List.from(discovered);
+
+    // Check if known device is already in the list
+    final hasKnown = discovered.any(
+      (d) => d.host == _knownDevice!.host && d.port == _knownDevice!.port,
+    );
+
+    if (hasKnown) return List.from(discovered);
+
+    // Add known device at the beginning
+    return [_knownDevice!, ...discovered];
   }
 
   /// Stop discovering devices.
@@ -56,28 +76,22 @@ class DiscoveryNotifier extends StateNotifier<DiscoveryState> {
     final device = _service.parseManualEntry(input);
     if (device != null) {
       _service.addManualDevice(device);
-      state = state.copyWith(
-        devices: List.from(_service.devices),
-        error: null,
-      );
+      state = state.copyWith(devices: List.from(_service.devices), error: null);
     } else {
       state = state.copyWith(error: 'Invalid format. Use IP:PORT (e.g., 192.168.1.100:8443)');
     }
   }
 
-  /// Clear the error message.
-  void clearError() {
-    state = state.copyWith(error: null);
-  }
-
-  @override
-  void dispose() {
-    _service.dispose();
-    super.dispose();
+  /// Add a known device directly (e.g., paired device from session).
+  /// This device will be preserved even when discovery restarts.
+  void addKnownDevice(Device device) {
+    _knownDevice = device;
+    _service.addManualDevice(device);
+    state = state.copyWith(devices: _mergeWithKnownDevice(_service.devices));
   }
 }
 
 /// Provider for device discovery.
-final discoveryProvider = StateNotifierProvider<DiscoveryNotifier, DiscoveryState>((ref) {
-  return DiscoveryNotifier();
-});
+final discoveryProvider = NotifierProvider<DiscoveryNotifier, DiscoveryState>(
+  DiscoveryNotifier.new,
+);

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:pinput/pinput.dart';
 
-/// Modern PIN input widget with 6 digits and auto-advance.
+import '../app.dart';
+
+/// Industrial-style PIN input widget with 6 digits.
 class PinInput extends StatelessWidget {
   final void Function(String) onCompleted;
   final void Function(String)? onChanged;
@@ -19,60 +21,35 @@ class PinInput extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaultPinTheme = PinTheme(
-      width: 56,
-      height: 64,
+      width: 52,
+      height: 60,
       textStyle: const TextStyle(
-        fontSize: 28,
+        fontSize: 26,
         fontWeight: FontWeight.w600,
-        color: Color(0xFF1E293B),
+        color: AppColors.textPrimary,
       ),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFFE2E8F0),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.surfaceAlt,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border, width: 1),
       ),
     );
 
     final focusedPinTheme = defaultPinTheme.copyDecorationWith(
-      border: Border.all(
-        color: const Color(0xFF2563EB),
-        width: 2,
-      ),
-      boxShadow: [
-        BoxShadow(
-          color: const Color(0xFF2563EB).withValues(alpha: 0.1),
-          blurRadius: 8,
-          offset: const Offset(0, 2),
-        ),
-      ],
+      color: AppColors.surface,
+      border: Border.all(color: AppColors.textPrimary, width: 1.5),
     );
 
     final submittedPinTheme = defaultPinTheme.copyWith(
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F5F9),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: const Color(0xFF2563EB),
-          width: 1.5,
-        ),
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.textPrimary, width: 1),
       ),
     );
 
     final errorPinTheme = defaultPinTheme.copyDecorationWith(
-      border: Border.all(
-        color: const Color(0xFFEF4444),
-        width: 2,
-      ),
+      border: Border.all(color: AppColors.error, width: 1.5),
     );
 
     return Pinput(
@@ -86,9 +63,9 @@ class PinInput extends StatelessWidget {
       showCursor: true,
       cursor: Container(
         width: 2,
-        height: 32,
+        height: 28,
         decoration: BoxDecoration(
-          color: const Color(0xFF2563EB),
+          color: AppColors.textPrimary,
           borderRadius: BorderRadius.circular(1),
         ),
       ),

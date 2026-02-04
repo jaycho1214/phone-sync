@@ -1,0 +1,34 @@
+# Dart/Flutter
+.dart_tool/
+.packages
+build/
+packages/**/pubspec.lock
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# macOS
+.DS_Store
+*.xcworkspace/
+Pods/
+Podfile.lock
+
+# Android
+*.apk
+*.aab
+.gradle/
+local.properties
+
+# Windows
+*.exe
+
+# Generated
+*.g.dart
+*.freezed.dart
+*.mocks.dart
+
+# Misc
+.env
+*.log

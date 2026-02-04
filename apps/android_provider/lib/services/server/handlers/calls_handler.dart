@@ -27,10 +27,7 @@ Future<Response> handleCalls(Request request, CallLogService service) async {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    return Response.ok(
-      responseBody,
-      headers: {'Content-Type': 'application/json'},
-    );
+    return Response.ok(responseBody, headers: {'Content-Type': 'application/json'});
   } catch (e) {
     return Response.internalServerError(
       body: jsonEncode({'error': e.toString()}),
