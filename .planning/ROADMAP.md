@@ -80,10 +80,11 @@ Plans:
   3. GitHub Release is created with downloadable APK, macOS .app, Windows .exe, and Linux bundle
   4. Android APK is signed with release keystore and installable on devices
   5. Each artifact has SHA256 checksum for verification
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md - TBD
+- [ ] 04-01-PLAN.md - Android release signing config and Linux platform support
+- [ ] 04-02-PLAN.md - GitHub Actions workflow with parallel platform builds and release creation
 
 ## Progress
 
@@ -95,8 +96,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
 | 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
 | 3. Desktop Client & Export | 2/2 | Complete | 2026-02-04 |
-| 4. Release Pipeline | 0/? | Pending | - |
+| 4. Release Pipeline | 0/2 | Pending | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-04 - Added Phase 4 (v1.1 CI/CD & Linux)*
+*Last updated: 2026-02-04 - Phase 4 plans created (2 plans in 2 waves)*
