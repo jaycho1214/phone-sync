@@ -63,7 +63,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 03-01-PLAN.md - Desktop app setup, mDNS discovery, PIN pairing flow with session persistence
+- [x] 03-01-PLAN.md - Desktop app setup, mDNS discovery, PIN pairing flow with session persistence
 - [ ] 03-02-PLAN.md - Drift database, data sync with progress, phone normalization/dedup, Excel export
 
 ## Progress
@@ -75,8 +75,8 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
 | 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
-| 3. Desktop Client & Export | 0/2 | Planned | - |
+| 3. Desktop Client & Export | 1/2 | In progress | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-04 - Phase 3 planned*
+*Last updated: 2026-02-04 - 03-01 complete*
