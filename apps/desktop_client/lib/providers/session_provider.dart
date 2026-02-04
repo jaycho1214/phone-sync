@@ -11,6 +11,7 @@ class SessionState {
   final bool isPaired;
   final bool isLoading;
   final String? error;
+  final SyncService? syncService;
 
   const SessionState({
     this.token,
@@ -18,6 +19,7 @@ class SessionState {
     this.isPaired = false,
     this.isLoading = false,
     this.error,
+    this.syncService,
   });
 
   SessionState copyWith({
@@ -26,6 +28,7 @@ class SessionState {
     bool? isPaired,
     bool? isLoading,
     String? error,
+    SyncService? syncService,
   }) {
     return SessionState(
       token: token ?? this.token,
@@ -33,6 +36,7 @@ class SessionState {
       isPaired: isPaired ?? this.isPaired,
       isLoading: isLoading ?? this.isLoading,
       error: error,
+      syncService: syncService ?? this.syncService,
     );
   }
 }
@@ -75,6 +79,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
           device: device,
           isPaired: true,
           isLoading: false,
+          syncService: _syncService,
         );
       } else {
         state = const SessionState(isLoading: false);
@@ -113,6 +118,7 @@ class SessionNotifier extends StateNotifier<SessionState> {
         device: device,
         isPaired: true,
         isLoading: false,
+        syncService: _syncService,
       );
 
       return true;
