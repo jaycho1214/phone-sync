@@ -34,8 +34,6 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
     with WidgetsBindingObserver {
-  bool _hasAutoStarted = false;
-
   @override
   void initState() {
     super.initState();
@@ -44,7 +42,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(permissionProvider.notifier).checkPermissions();
       ref.read(syncStateProvider.notifier).loadSyncState();
-      // Auto-start server by default
+      // Auto-start server by default (safe to call if already running)
       _autoStartServerIfReady();
     });
   }
@@ -70,20 +68,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final permissions = ref.read(permissionProvider);
     final server = ref.read(serverProvider);
 
-    // Start server if permissions granted (or even without - server will just serve empty data)
-    if (!server.isRunning && !_hasAutoStarted) {
-      _hasAutoStarted = true;
+    // Start server (safe to call multiple times - server provider handles idempotency)
+    if (!server.isRunning) {
       ref.read(serverProvider.notifier).startServer();
       ref.read(pairingProvider.notifier).generateNewPin();
+    }
 
-      // Refresh counts if permissions granted
-      if (permissions.hasAnyGranted) {
-        ref.read(extractionProvider.notifier).refreshCounts(
-              hasContacts: permissions.contacts.isGranted,
-              hasSms: permissions.sms.isGranted,
-              hasCallLog: permissions.callLog.isGranted,
-            );
-      }
+    // Refresh counts if permissions granted
+    if (permissions.hasAnyGranted) {
+      ref.read(extractionProvider.notifier).refreshCounts(
+            hasContacts: permissions.contacts.isGranted,
+            hasSms: permissions.sms.isGranted,
+            hasCallLog: permissions.callLog.isGranted,
+          );
     }
   }
 

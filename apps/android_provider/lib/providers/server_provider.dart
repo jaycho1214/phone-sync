@@ -40,6 +40,8 @@ class ServerNotifier extends StateNotifier<ServerState> {
   final CallLogService _callLogService;
   final CertificateService _certificateService;
   final PairingService _pairingService;
+
+  // Use singleton server instance to survive hot reloads
   final PhoneSyncServer _server = PhoneSyncServer();
 
   ServerNotifier({
@@ -55,14 +57,36 @@ class ServerNotifier extends StateNotifier<ServerState> {
         _callLogService = callLogService,
         _certificateService = certificateService,
         _pairingService = pairingService,
-        super(const ServerState());
+        super(const ServerState()) {
+    // Sync state with actual server state on creation (handles hot reload)
+    _syncStateWithServer();
+  }
+
+  /// Sync provider state with actual singleton server state.
+  /// Called on creation to handle hot reload scenarios.
+  void _syncStateWithServer() {
+    if (_server.isRunning) {
+      state = ServerState(
+        isRunning: true,
+        port: _server.port,
+      );
+    }
+  }
 
   /// Get the pairing service for external access
   PairingService get pairingService => _pairingService;
 
-  /// Start the HTTP server and advertise via mDNS
+  /// Start the HTTP server and advertise via mDNS.
+  /// Safe to call multiple times - will sync state if already running.
   Future<void> startServer() async {
-    if (state.isRunning) return;
+    // If server singleton is already running, just sync state
+    if (_server.isRunning) {
+      state = ServerState(
+        isRunning: true,
+        port: _server.port,
+      );
+      return;
+    }
 
     try {
       // Generate or load TLS certificate
@@ -73,6 +97,7 @@ class ServerNotifier extends StateNotifier<ServerState> {
       );
 
       // Start HTTPS server on dynamic port
+      // The singleton will stop any existing server before starting
       await _server.start(
         port: 0,
         contactsService: _contactsService,
@@ -102,8 +127,7 @@ class ServerNotifier extends StateNotifier<ServerState> {
 
   /// Stop the HTTP server and mDNS advertisement
   Future<void> stopServer() async {
-    if (!state.isRunning) return;
-
+    // Always attempt to stop even if state says not running (state might be desynced)
     try {
       // Stop mDNS advertisement first
       await _discoveryService.stopAdvertising();
@@ -119,7 +143,9 @@ class ServerNotifier extends StateNotifier<ServerState> {
 
   @override
   void dispose() {
-    stopServer();
+    // Note: We don't stop the server on dispose because other providers
+    // might still be using it. The server will be stopped when the app
+    // goes to background via the lifecycle observer.
     super.dispose();
   }
 }

@@ -8,8 +8,14 @@ import '../pairing_service.dart';
 import '../sms_service.dart';
 import 'routes.dart';
 
-/// HTTP server for serving phone data endpoints
+/// HTTP server for serving phone data endpoints.
+/// Uses singleton pattern to prevent multiple server instances (especially on hot reload).
 class PhoneSyncServer {
+  // Singleton instance
+  static final PhoneSyncServer _instance = PhoneSyncServer._internal();
+  factory PhoneSyncServer() => _instance;
+  PhoneSyncServer._internal();
+
   HttpServer? _server;
   int _port = 0;
 
@@ -19,9 +25,11 @@ class PhoneSyncServer {
   /// Check if the server is running
   bool get isRunning => _server != null;
 
-  /// Start the server on the specified port
-  /// Use port 0 for dynamic port assignment
-  /// Pass securityContext for HTTPS, or null for HTTP (testing only)
+  /// Start the server on the specified port.
+  /// Use port 0 for dynamic port assignment.
+  /// Pass securityContext for HTTPS, or null for HTTP (testing only).
+  ///
+  /// If server is already running, stops it first to prevent duplicates.
   Future<void> start({
     int port = 0,
     required ContactsService contactsService,
@@ -30,8 +38,9 @@ class PhoneSyncServer {
     required PairingService pairingService,
     SecurityContext? securityContext,
   }) async {
+    // Always stop existing server first to prevent duplicates
     if (_server != null) {
-      throw StateError('Server is already running');
+      await stop();
     }
 
     final router = createRouter(
@@ -53,8 +62,11 @@ class PhoneSyncServer {
 
   /// Stop the server
   Future<void> stop() async {
-    await _server?.close(force: true);
-    _server = null;
-    _port = 0;
+    final server = _server;
+    if (server != null) {
+      _server = null; // Clear reference immediately to prevent race conditions
+      _port = 0;
+      await server.close(force: true);
+    }
   }
 }
