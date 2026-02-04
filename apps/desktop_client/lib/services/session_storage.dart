@@ -1,16 +1,23 @@
+import 'dart:io';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-/// Secure storage for session data.
-/// Persists pairing information across app restarts.
+/// Storage for session data.
+/// Uses shared_preferences on macOS (avoids keychain entitlement issues).
+/// Uses flutter_secure_storage on other platforms for encryption.
 class SessionStorage {
-  static const _storage = FlutterSecureStorage(
-    aOptions: AndroidOptions(encryptedSharedPreferences: true),
-  );
-
   static const _tokenKey = 'session_token';
   static const _deviceNameKey = 'paired_device_name';
   static const _deviceHostKey = 'paired_device_host';
   static const _devicePortKey = 'paired_device_port';
+
+  // Use shared_preferences on macOS to avoid keychain issues
+  static final bool _usePlainStorage = Platform.isMacOS || Platform.isLinux;
+
+  static const _secureStorage = FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
 
   /// Save session after successful pairing.
   Future<void> saveSession({
@@ -19,39 +26,71 @@ class SessionStorage {
     required String deviceHost,
     required int devicePort,
   }) async {
-    await _storage.write(key: _tokenKey, value: token);
-    await _storage.write(key: _deviceNameKey, value: deviceName);
-    await _storage.write(key: _deviceHostKey, value: deviceHost);
-    await _storage.write(key: _devicePortKey, value: devicePort.toString());
+    if (_usePlainStorage) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_tokenKey, token);
+      await prefs.setString(_deviceNameKey, deviceName);
+      await prefs.setString(_deviceHostKey, deviceHost);
+      await prefs.setInt(_devicePortKey, devicePort);
+    } else {
+      await _secureStorage.write(key: _tokenKey, value: token);
+      await _secureStorage.write(key: _deviceNameKey, value: deviceName);
+      await _secureStorage.write(key: _deviceHostKey, value: deviceHost);
+      await _secureStorage.write(key: _devicePortKey, value: devicePort.toString());
+    }
   }
 
   /// Load saved session.
   /// Returns null values if no session saved.
   Future<({String? token, String? deviceName, String? deviceHost, int? devicePort})> loadSession() async {
-    final token = await _storage.read(key: _tokenKey);
-    final deviceName = await _storage.read(key: _deviceNameKey);
-    final deviceHost = await _storage.read(key: _deviceHostKey);
-    final devicePortStr = await _storage.read(key: _devicePortKey);
+    if (_usePlainStorage) {
+      final prefs = await SharedPreferences.getInstance();
+      return (
+        token: prefs.getString(_tokenKey),
+        deviceName: prefs.getString(_deviceNameKey),
+        deviceHost: prefs.getString(_deviceHostKey),
+        devicePort: prefs.getInt(_devicePortKey),
+      );
+    } else {
+      final token = await _secureStorage.read(key: _tokenKey);
+      final deviceName = await _secureStorage.read(key: _deviceNameKey);
+      final deviceHost = await _secureStorage.read(key: _deviceHostKey);
+      final devicePortStr = await _secureStorage.read(key: _devicePortKey);
 
-    return (
-      token: token,
-      deviceName: deviceName,
-      deviceHost: deviceHost,
-      devicePort: devicePortStr != null ? int.tryParse(devicePortStr) : null,
-    );
+      return (
+        token: token,
+        deviceName: deviceName,
+        deviceHost: deviceHost,
+        devicePort: devicePortStr != null ? int.tryParse(devicePortStr) : null,
+      );
+    }
   }
 
   /// Check if a session is saved.
   Future<bool> hasSession() async {
-    final token = await _storage.read(key: _tokenKey);
-    return token != null && token.isNotEmpty;
+    if (_usePlainStorage) {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString(_tokenKey);
+      return token != null && token.isNotEmpty;
+    } else {
+      final token = await _secureStorage.read(key: _tokenKey);
+      return token != null && token.isNotEmpty;
+    }
   }
 
   /// Clear saved session (unpair).
   Future<void> clearSession() async {
-    await _storage.delete(key: _tokenKey);
-    await _storage.delete(key: _deviceNameKey);
-    await _storage.delete(key: _deviceHostKey);
-    await _storage.delete(key: _devicePortKey);
+    if (_usePlainStorage) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_tokenKey);
+      await prefs.remove(_deviceNameKey);
+      await prefs.remove(_deviceHostKey);
+      await prefs.remove(_devicePortKey);
+    } else {
+      await _secureStorage.delete(key: _tokenKey);
+      await _secureStorage.delete(key: _deviceNameKey);
+      await _secureStorage.delete(key: _deviceHostKey);
+      await _secureStorage.delete(key: _devicePortKey);
+    }
   }
 }
