@@ -44,11 +44,19 @@ jobs:
         with:
           distribution: temurin
           java-version: 17
+          # Note: Don't use cache: gradle here - using gradle/actions/setup-gradle instead
 
       - uses: subosito/flutter-action@v2
         with:
           channel: ${{ env.FLUTTER_VERSION }}
           cache: true
+
+      # Use official Gradle action for better caching (recommended over setup-java's cache)
+      # See: https://github.com/gradle/actions/blob/main/docs/setup-gradle.md
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+          gradle-home-cache-cleanup: true
 
       - name: Decode Keystore
         working-directory: apps/android_provider/android
@@ -65,6 +73,8 @@ jobs:
 
       - name: Build APK
         working-directory: apps/android_provider
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.daemon=true -Dorg.gradle.parallel=true -Dorg.gradle.caching=true"
         run: flutter build apk --release --build-name=${{ steps.version.outputs.VERSION }}
 
       - name: Rename APK
