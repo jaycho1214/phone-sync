@@ -33,30 +33,30 @@
 - [x] **PLAT-02**: Windows desktop app works as data consumer
 - [x] **PLAT-03**: Mac desktop app works as data consumer
 
-## v1.1 Requirements (CI/CD & Linux)
+## v1.1 Requirements (CI/CD & Linux) - Complete
 
 ### CI/CD Pipeline
 
-- [ ] **CICD-01**: Release builds trigger on git tag push (v*.*.* pattern)
-- [ ] **CICD-02**: Pipeline builds Android APK
-- [ ] **CICD-03**: Pipeline builds macOS app
-- [ ] **CICD-04**: Pipeline builds Windows app
-- [ ] **CICD-05**: Pipeline builds Linux app
-- [ ] **CICD-06**: All platform builds run in parallel
-- [ ] **CICD-07**: Flutter SDK cached to avoid 5+ min downloads
-- [ ] **CICD-08**: GitHub Release created with all platform artifacts
-- [ ] **CICD-09**: SHA256 checksums generated for each artifact
-- [ ] **CICD-10**: Version extracted from git tag (v1.0.0 → 1.0.0)
+- [x] **CICD-01**: Release builds trigger on git tag push (v*.*.* pattern)
+- [x] **CICD-02**: Pipeline builds Android APK
+- [x] **CICD-03**: Pipeline builds macOS app
+- [x] **CICD-04**: Pipeline builds Windows app
+- [x] **CICD-05**: Pipeline builds Linux app
+- [x] **CICD-06**: All platform builds run in parallel
+- [x] **CICD-07**: Flutter SDK cached to avoid 5+ min downloads
+- [x] **CICD-08**: GitHub Release created with all platform artifacts
+- [x] **CICD-09**: SHA256 checksums generated for each artifact
+- [x] **CICD-10**: Version extracted from git tag (v1.0.0 → 1.0.0)
 
 ### Android Signing
 
-- [ ] **SIGN-01**: Android APK signed with release keystore
-- [ ] **SIGN-02**: Keystore secrets stored securely in GitHub Secrets
-- [ ] **SIGN-03**: Signed APK installable on Android devices
+- [x] **SIGN-01**: Android APK signed with release keystore
+- [x] **SIGN-02**: Keystore secrets stored securely in GitHub Secrets
+- [x] **SIGN-03**: Signed APK installable on Android devices
 
 ### Platform (Addition)
 
-- [ ] **PLAT-04**: Linux desktop app works as data consumer
+- [x] **PLAT-04**: Linux desktop app works as data consumer
 
 ## v2 Requirements
 
@@ -119,27 +119,27 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAT-01 | Phase 1 | Complete |
 | PLAT-02 | Phase 3 | Complete |
 | PLAT-03 | Phase 3 | Complete |
-| CICD-01 | Phase 4 | Pending |
-| CICD-02 | Phase 4 | Pending |
-| CICD-03 | Phase 4 | Pending |
-| CICD-04 | Phase 4 | Pending |
-| CICD-05 | Phase 4 | Pending |
-| CICD-06 | Phase 4 | Pending |
-| CICD-07 | Phase 4 | Pending |
-| CICD-08 | Phase 4 | Pending |
-| CICD-09 | Phase 4 | Pending |
-| CICD-10 | Phase 4 | Pending |
-| SIGN-01 | Phase 4 | Pending |
-| SIGN-02 | Phase 4 | Pending |
-| SIGN-03 | Phase 4 | Pending |
-| PLAT-04 | Phase 4 | Pending |
+| CICD-01 | Phase 4 | Complete |
+| CICD-02 | Phase 4 | Complete |
+| CICD-03 | Phase 4 | Complete |
+| CICD-04 | Phase 4 | Complete |
+| CICD-05 | Phase 4 | Complete |
+| CICD-06 | Phase 4 | Complete |
+| CICD-07 | Phase 4 | Complete |
+| CICD-08 | Phase 4 | Complete |
+| CICD-09 | Phase 4 | Complete |
+| CICD-10 | Phase 4 | Complete |
+| SIGN-01 | Phase 4 | Complete |
+| SIGN-02 | Phase 4 | Complete |
+| SIGN-03 | Phase 4 | Complete |
+| PLAT-04 | Phase 4 | Complete |
 
 **Coverage:**
 - v1.0 requirements: 16 total (Complete)
-- v1.1 requirements: 14 total
+- v1.1 requirements: 14 total (Complete)
 - Mapped to phases: 30
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-04 — Added v1.1 CI/CD requirements*
+*Last updated: 2026-02-04 — Phase 4 complete, all v1.1 requirements satisfied*

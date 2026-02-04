@@ -15,8 +15,8 @@ This roadmap delivers a Flutter monorepo that extracts phone numbers from an And
 - [x] **Phase 2: Network Protocol** - Connect Android and desktop over local network with PIN pairing
 - [x] **Phase 3: Desktop Client & Export** - Fetch data on Windows/Mac and export to Excel
 
-**Milestone v1.1 (CI/CD & Linux):**
-- [ ] **Phase 4: Release Pipeline** - Automated multi-platform builds with GitHub Actions, Android signing, Linux support
+**Milestone v1.1 (CI/CD & Linux) - Complete:**
+- [x] **Phase 4: Release Pipeline** - Automated multi-platform builds with GitHub Actions, Android signing, Linux support
 
 ## Phase Details
 
@@ -83,8 +83,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md - Android release signing config and Linux platform support
-- [ ] 04-02-PLAN.md - GitHub Actions workflow with parallel platform builds and release creation
+- [x] 04-01-PLAN.md - Android release signing config and Linux platform support
+- [x] 04-02-PLAN.md - GitHub Actions workflow with parallel platform builds and release creation
 
 ## Progress
 
@@ -96,8 +96,8 @@ Phases execute in numeric order: 1 -> 2 -> 3 -> 4
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
 | 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
 | 3. Desktop Client & Export | 2/2 | Complete | 2026-02-04 |
-| 4. Release Pipeline | 0/2 | Pending | - |
+| 4. Release Pipeline | 2/2 | Complete | 2026-02-04 |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-04 - Phase 4 plans created (2 plans in 2 waves)*
+*Last updated: 2026-02-04 - Phase 4 complete, Milestone v1.1 complete*
