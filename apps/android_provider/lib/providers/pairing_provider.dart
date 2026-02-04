@@ -83,11 +83,8 @@ class PairingNotifier extends StateNotifier<PairingUIState> {
     final remaining = state.expiresAt!.difference(DateTime.now());
 
     if (remaining.isNegative) {
-      // PIN expired
-      _countdownTimer?.cancel();
-      state = state.copyWith(
-        timeRemaining: Duration.zero,
-      );
+      // PIN expired - auto-generate a new one
+      generateNewPin();
     } else {
       state = state.copyWith(timeRemaining: remaining);
     }
