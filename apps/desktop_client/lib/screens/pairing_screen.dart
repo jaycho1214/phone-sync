@@ -96,7 +96,10 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                         const SizedBox(height: 8),
                         const Text(
                           'Enter the 6-digit code shown on your Android device',
-                          style: TextStyle(fontSize: 13, color: AppColors.textMuted),
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: AppColors.textMuted,
+                          ),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 32),
@@ -112,7 +115,10 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                           ),
 
                         // Error message
-                        if (_error != null) ...[const SizedBox(height: 20), _buildErrorBanner()],
+                        if (_error != null) ...[
+                          const SizedBox(height: 20),
+                          _buildErrorBanner(),
+                        ],
 
                         const Spacer(flex: 2),
 
@@ -125,12 +131,19 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.info_outline, size: 18, color: AppColors.textMuted),
+                              const Icon(
+                                Icons.info_outline,
+                                size: 18,
+                                color: AppColors.textMuted,
+                              ),
                               const SizedBox(width: 12),
                               const Expanded(
                                 child: Text(
                                   'Make sure the PhoneSync server is running on your Android device',
-                                  style: TextStyle(fontSize: 12, color: AppColors.textMuted),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.textMuted,
+                                  ),
                                 ),
                               ),
                             ],
@@ -168,7 +181,11 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                 color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: const Icon(Icons.arrow_back, size: 18, color: AppColors.textSecondary),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 18,
+                color: AppColors.textSecondary,
+              ),
             ),
           ),
           const SizedBox(width: 12),
@@ -203,7 +220,11 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
               color: AppColors.surfaceAlt,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: const Icon(Icons.phone_android, color: AppColors.textSecondary, size: 24),
+            child: const Icon(
+              Icons.phone_android,
+              color: AppColors.textSecondary,
+              size: 24,
+            ),
           ),
           const SizedBox(width: 16),
           Column(
@@ -247,12 +268,18 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
             child: SizedBox(
               width: 24,
               height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textMuted),
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: AppColors.textMuted,
+              ),
             ),
           ),
         ),
         const SizedBox(height: 16),
-        const Text('Pairing...', style: TextStyle(fontSize: 14, color: AppColors.textMuted)),
+        const Text(
+          'Pairing...',
+          style: TextStyle(fontSize: 14, color: AppColors.textMuted),
+        ),
       ],
     );
   }
@@ -271,7 +298,10 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
           const Icon(Icons.error_outline, color: AppColors.error, size: 18),
           const SizedBox(width: 10),
           Flexible(
-            child: Text(_error!, style: const TextStyle(color: AppColors.error, fontSize: 13)),
+            child: Text(
+              _error!,
+              style: const TextStyle(color: AppColors.error, fontSize: 13),
+            ),
           ),
         ],
       ),

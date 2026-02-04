@@ -9,7 +9,12 @@ class DeviceCard extends StatefulWidget {
   final VoidCallback onTap;
   final bool isPaired;
 
-  const DeviceCard({super.key, required this.device, required this.onTap, this.isPaired = false});
+  const DeviceCard({
+    super.key,
+    required this.device,
+    required this.onTap,
+    this.isPaired = false,
+  });
 
   @override
   State<DeviceCard> createState() => _DeviceCardState();
@@ -43,7 +48,9 @@ class _DeviceCardState extends State<DeviceCard> {
                 width: 44,
                 height: 44,
                 decoration: BoxDecoration(
-                  color: _isHovered ? AppColors.textPrimary : AppColors.surfaceAlt,
+                  color: _isHovered
+                      ? AppColors.textPrimary
+                      : AppColors.surfaceAlt,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Icon(
@@ -74,7 +81,10 @@ class _DeviceCardState extends State<DeviceCard> {
                         if (widget.isPaired) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: AppColors.accent,
                               borderRadius: BorderRadius.circular(4),
@@ -111,7 +121,9 @@ class _DeviceCardState extends State<DeviceCard> {
                   width: 28,
                   height: 28,
                   decoration: BoxDecoration(
-                    color: _isHovered ? AppColors.textPrimary : AppColors.surfaceAlt,
+                    color: _isHovered
+                        ? AppColors.textPrimary
+                        : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(

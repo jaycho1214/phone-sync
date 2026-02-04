@@ -9,9 +9,17 @@ class DiscoveryState {
   final bool isDiscovering;
   final String? error;
 
-  const DiscoveryState({this.devices = const [], this.isDiscovering = false, this.error});
+  const DiscoveryState({
+    this.devices = const [],
+    this.isDiscovering = false,
+    this.error,
+  });
 
-  DiscoveryState copyWith({List<Device>? devices, bool? isDiscovering, String? error}) {
+  DiscoveryState copyWith({
+    List<Device>? devices,
+    bool? isDiscovering,
+    String? error,
+  }) {
     return DiscoveryState(
       devices: devices ?? this.devices,
       isDiscovering: isDiscovering ?? this.isDiscovering,
@@ -78,7 +86,9 @@ class DiscoveryNotifier extends Notifier<DiscoveryState> {
       _service.addManualDevice(device);
       state = state.copyWith(devices: List.from(_service.devices), error: null);
     } else {
-      state = state.copyWith(error: 'Invalid format. Use IP:PORT (e.g., 192.168.1.100:8443)');
+      state = state.copyWith(
+        error: 'Invalid format. Use IP:PORT (e.g., 192.168.1.100:8443)',
+      );
     }
   }
 

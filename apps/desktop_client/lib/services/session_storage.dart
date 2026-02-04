@@ -22,7 +22,9 @@ class SessionStorage {
   }
 
   /// Load saved session.
-  Future<({String? token, String? deviceName, String? deviceHost, int? devicePort})>
+  Future<
+    ({String? token, String? deviceName, String? deviceHost, int? devicePort})
+  >
   loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     return (

@@ -85,14 +85,19 @@ class SessionNotifier extends Notifier<SessionState> {
     try {
       final session = await _storage.loadSession();
 
-      if (session.token != null && session.deviceHost != null && session.devicePort != null) {
+      if (session.token != null &&
+          session.deviceHost != null &&
+          session.devicePort != null) {
         final device = Device(
           name: session.deviceName ?? 'Paired Device',
           host: session.deviceHost!,
           port: session.devicePort!,
         );
 
-        _syncService = SyncService(baseUrl: device.baseUrl, sessionToken: session.token);
+        _syncService = SyncService(
+          baseUrl: device.baseUrl,
+          sessionToken: session.token,
+        );
 
         state = SessionState(
           token: session.token,
@@ -110,7 +115,10 @@ class SessionNotifier extends Notifier<SessionState> {
         state = const SessionState(isLoading: false);
       }
     } catch (e) {
-      state = SessionState(isLoading: false, error: 'Failed to load session: $e');
+      state = SessionState(
+        isLoading: false,
+        error: 'Failed to load session: $e',
+      );
     }
   }
 
@@ -199,7 +207,10 @@ class SessionNotifier extends Notifier<SessionState> {
         // Success - extract host from URL for storage
         successfulHost = baseUrl.replaceAll('https://', '').split(':').first;
         if (successfulHost.startsWith('[')) {
-          successfulHost = successfulHost.substring(1, successfulHost.length - 1);
+          successfulHost = successfulHost.substring(
+            1,
+            successfulHost.length - 1,
+          );
         }
 
         // Save session to secure storage
@@ -233,7 +244,8 @@ class SessionNotifier extends Notifier<SessionState> {
       } catch (e) {
         lastError = e.toString().replaceAll('Exception: ', '');
         // If it's an auth error (wrong PIN), don't try other addresses
-        if (lastError.contains('Invalid') || lastError.contains('expired PIN')) {
+        if (lastError.contains('Invalid') ||
+            lastError.contains('expired PIN')) {
           break;
         }
         // Otherwise try next address
@@ -241,7 +253,10 @@ class SessionNotifier extends Notifier<SessionState> {
       }
     }
 
-    state = state.copyWith(isLoading: false, error: lastError ?? 'Cannot connect to device');
+    state = state.copyWith(
+      isLoading: false,
+      error: lastError ?? 'Cannot connect to device',
+    );
     return false;
   }
 
@@ -261,4 +276,6 @@ class SessionNotifier extends Notifier<SessionState> {
 }
 
 /// Provider for session state.
-final sessionProvider = NotifierProvider<SessionNotifier, SessionState>(SessionNotifier.new);
+final sessionProvider = NotifierProvider<SessionNotifier, SessionState>(
+  SessionNotifier.new,
+);

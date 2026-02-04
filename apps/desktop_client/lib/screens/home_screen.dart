@@ -6,7 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app.dart';
-import '../providers/export_provider.dart' show DataType, ExportState, PrefixFilter, exportProvider;
+import '../providers/export_provider.dart'
+    show DataType, ExportState, PrefixFilter, exportProvider;
 import '../providers/session_provider.dart';
 
 /// Home screen - shown when paired with a device.
@@ -45,11 +46,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel', style: TextStyle(color: AppColors.textSecondary)),
+            child: const Text(
+              'Cancel',
+              style: TextStyle(color: AppColors.textSecondary),
+            ),
           ),
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Unpair', style: TextStyle(color: AppColors.error)),
+            child: const Text(
+              'Unpair',
+              style: TextStyle(color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -58,7 +65,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     if (confirmed == true) {
       await ref.read(sessionProvider.notifier).unpair();
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/discovery', (route) => false);
+        Navigator.of(
+          context,
+        ).pushNamedAndRemoveUntil('/discovery', (route) => false);
       }
     }
   }
@@ -69,7 +78,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final picked = await showDatePicker(
       context: context,
-      initialDate: exportState.sinceDate ?? now.subtract(const Duration(days: 30)),
+      initialDate:
+          exportState.sinceDate ?? now.subtract(const Duration(days: 30)),
       firstDate: DateTime(2000),
       lastDate: now,
       builder: (context, child) {
@@ -103,7 +113,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       });
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted)),
+        body: Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            color: AppColors.textMuted,
+          ),
+        ),
       );
     }
 
@@ -131,7 +146,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         // Connection warning
-                        if (session.connectionStatus == ConnectionStatus.disconnected)
+                        if (session.connectionStatus ==
+                            ConnectionStatus.disconnected)
                           _buildDisconnectedBanner(),
 
                         // Data counts - compact 2x2 grid
@@ -142,11 +158,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         _buildExportSection(context, device.name, exportState),
 
                         // Messages
-                        if (exportState.lastExportPath != null || exportState.error != null)
+                        if (exportState.lastExportPath != null ||
+                            exportState.error != null)
                           const SizedBox(height: 12),
                         if (exportState.lastExportPath != null)
                           _buildSuccessMessage(exportState.lastExportPath!),
-                        if (exportState.error != null) _buildErrorMessage(exportState.error!),
+                        if (exportState.error != null)
+                          _buildErrorMessage(exportState.error!),
                       ],
                     ),
                   ),
@@ -159,7 +177,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, SessionState session, String deviceName) {
+  Widget _buildHeader(
+    BuildContext context,
+    SessionState session,
+    String deviceName,
+  ) {
     final isConnected = session.connectionStatus == ConnectionStatus.connected;
     final statusColor = isConnected ? AppColors.accent : AppColors.textMuted;
 
@@ -193,7 +215,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     Container(
                       width: 5,
                       height: 5,
-                      decoration: BoxDecoration(shape: BoxShape.circle, color: statusColor),
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: statusColor,
+                      ),
                     ),
                     const SizedBox(width: 4),
                     Flexible(
@@ -250,7 +275,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             onTap: () => ref.read(sessionProvider.notifier).retryConnection(),
             child: const Text(
               'Retry',
-              style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.warning),
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.warning,
+              ),
             ),
           ),
         ],
@@ -308,7 +337,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildCountItem(String label, int count, IconData icon, bool isLoading) {
+  Widget _buildCountItem(
+    String label,
+    int count,
+    IconData icon,
+    bool isLoading,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       decoration: BoxDecoration(
@@ -327,7 +361,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(
                     width: 12,
                     height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.textMuted),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 1.5,
+                      color: AppColors.textMuted,
+                    ),
                   )
                 else
                   Text(
@@ -338,7 +375,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       color: AppColors.textPrimary,
                     ),
                   ),
-                Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textMuted)),
+                Text(
+                  label,
+                  style: const TextStyle(
+                    fontSize: 10,
+                    color: AppColors.textMuted,
+                  ),
+                ),
               ],
             ),
           ),
@@ -353,7 +396,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return number.toString();
   }
 
-  Widget _buildExportSection(BuildContext context, String deviceName, ExportState state) {
+  Widget _buildExportSection(
+    BuildContext context,
+    String deviceName,
+    ExportState state,
+  ) {
     final dateFormat = DateFormat('MMM d, yyyy');
 
     return Container(
@@ -380,12 +427,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.warning),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.warning,
+                    ),
                   ),
                   const SizedBox(width: 10),
                   Text(
                     state.statusMessage,
-                    style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
                 ],
               ),
@@ -405,11 +458,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildDataTypeSelector('SMS', Icons.message_outlined, DataType.sms, state),
+                child: _buildDataTypeSelector(
+                  'SMS',
+                  Icons.message_outlined,
+                  DataType.sms,
+                  state,
+                ),
               ),
               const SizedBox(width: 8),
               Expanded(
-                child: _buildDataTypeSelector('Calls', Icons.phone_outlined, DataType.calls, state),
+                child: _buildDataTypeSelector(
+                  'Calls',
+                  Icons.phone_outlined,
+                  DataType.calls,
+                  state,
+                ),
               ),
             ],
           ),
@@ -424,7 +487,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: GestureDetector(
                   onTap: state.isExporting ? null : () => _selectDate(context),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceAlt,
                       borderRadius: BorderRadius.circular(6),
@@ -432,7 +498,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.calendar_today, size: 14, color: AppColors.textMuted),
+                        const Icon(
+                          Icons.calendar_today,
+                          size: 14,
+                          color: AppColors.textMuted,
+                        ),
                         const SizedBox(width: 6),
                         Expanded(
                           child: Text(
@@ -450,8 +520,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ),
                         if (state.sinceDate != null)
                           GestureDetector(
-                            onTap: () => ref.read(exportProvider.notifier).setSinceDate(null),
-                            child: const Icon(Icons.close, size: 14, color: AppColors.textMuted),
+                            onTap: () => ref
+                                .read(exportProvider.notifier)
+                                .setSinceDate(null),
+                            child: const Icon(
+                              Icons.close,
+                              size: 14,
+                              color: AppColors.textMuted,
+                            ),
                           ),
                       ],
                     ),
@@ -461,9 +537,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(width: 8),
               // Prefix filter button
               GestureDetector(
-                onTap: state.isExporting ? null : () => _showPrefixFilterDialog(context),
+                onTap: state.isExporting
+                    ? null
+                    : () => _showPrefixFilterDialog(context),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
                     color: state.prefixFilter.isActive
                         ? AppColors.accentLight
@@ -500,8 +581,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       if (state.prefixFilter.isActive) ...[
                         const SizedBox(width: 4),
                         GestureDetector(
-                          onTap: () => ref.read(exportProvider.notifier).clearPrefixFilters(),
-                          child: const Icon(Icons.close, size: 12, color: AppColors.accent),
+                          onTap: () => ref
+                              .read(exportProvider.notifier)
+                              .clearPrefixFilters(),
+                          child: const Icon(
+                            Icons.close,
+                            size: 12,
+                            color: AppColors.accent,
+                          ),
                         ),
                       ],
                     ],
@@ -517,7 +604,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           GestureDetector(
             onTap: state.isExporting || !state.hasAnySelected
                 ? null
-                : () => ref.read(exportProvider.notifier).exportSelected(deviceName),
+                : () => ref
+                      .read(exportProvider.notifier)
+                      .exportSelected(deviceName),
             child: Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -557,7 +646,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildDataTypeSelector(String label, IconData icon, DataType type, ExportState state) {
+  Widget _buildDataTypeSelector(
+    String label,
+    IconData icon,
+    DataType type,
+    ExportState state,
+  ) {
     final isSelected = state.selectedTypes.contains(type);
 
     return GestureDetector(
@@ -569,11 +663,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         decoration: BoxDecoration(
           color: isSelected ? AppColors.textPrimary : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: isSelected ? AppColors.textPrimary : AppColors.border),
+          border: Border.all(
+            color: isSelected ? AppColors.textPrimary : AppColors.border,
+          ),
         ),
         child: Column(
           children: [
-            Icon(icon, size: 20, color: isSelected ? Colors.white : AppColors.textMuted),
+            Icon(
+              icon,
+              size: 20,
+              color: isSelected ? Colors.white : AppColors.textMuted,
+            ),
             const SizedBox(height: 4),
             Text(
               label,
@@ -661,7 +761,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const Icon(Icons.error_outline, size: 16, color: AppColors.error),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(error, style: const TextStyle(fontSize: 11, color: AppColors.error)),
+            child: Text(
+              error,
+              style: const TextStyle(fontSize: 11, color: AppColors.error),
+            ),
           ),
         ],
       ),
@@ -771,7 +874,11 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                     color: AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.filter_list, size: 18, color: AppColors.textPrimary),
+                  child: const Icon(
+                    Icons.filter_list,
+                    size: 18,
+                    color: AppColors.textPrimary,
+                  ),
                 ),
                 const SizedBox(width: 12),
                 const Expanded(
@@ -788,14 +895,21 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                       ),
                       Text(
                         'Filter by number prefix',
-                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.textMuted,
+                        ),
                       ),
                     ],
                   ),
                 ),
                 GestureDetector(
                   onTap: () => Navigator.of(context).pop(),
-                  child: const Icon(Icons.close, size: 18, color: AppColors.textMuted),
+                  child: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -862,10 +976,12 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      widget.onApply(PrefixFilter(
-                        allowPrefixes: _allowPrefixes,
-                        disallowPrefixes: _disallowPrefixes,
-                      ));
+                      widget.onApply(
+                        PrefixFilter(
+                          allowPrefixes: _allowPrefixes,
+                          disallowPrefixes: _disallowPrefixes,
+                        ),
+                      );
                       Navigator.of(context).pop();
                     },
                     child: Container(
@@ -948,13 +1064,22 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                 child: TextField(
                   controller: controller,
                   focusNode: focusNode,
-                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textPrimary,
+                  ),
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    hintStyle: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textMuted,
+                    ),
                     filled: true,
                     fillColor: AppColors.surfaceAlt,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 10,
+                    ),
                     isDense: true,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(6),
@@ -981,7 +1106,9 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                     decoration: BoxDecoration(
                       color: accentColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                      border: Border.all(
+                        color: accentColor.withValues(alpha: 0.3),
+                      ),
                     ),
                     child: Center(
                       child: Icon(Icons.add, size: 16, color: accentColor),
@@ -1125,7 +1252,8 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
     required List<String> allow,
     required List<String> disallow,
   }) {
-    final isActive = _listEquals(_allowPrefixes, allow) &&
+    final isActive =
+        _listEquals(_allowPrefixes, allow) &&
         _listEquals(_disallowPrefixes, disallow) &&
         (allow.isNotEmpty || disallow.isNotEmpty);
 
@@ -1144,7 +1272,9 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
           color: isActive ? AppColors.accentLight : AppColors.surfaceAlt,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
-            color: isActive ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border,
+            color: isActive
+                ? AppColors.accent.withValues(alpha: 0.4)
+                : AppColors.border,
             width: isActive ? 1.5 : 1,
           ),
         ),
@@ -1162,7 +1292,9 @@ class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: isActive ? AppColors.accent : AppColors.textPrimary,
+                      color: isActive
+                          ? AppColors.accent
+                          : AppColors.textPrimary,
                     ),
                     overflow: TextOverflow.ellipsis,
                   ),

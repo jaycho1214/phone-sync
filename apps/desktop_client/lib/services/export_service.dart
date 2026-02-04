@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:excel/excel.dart';
 import 'package:intl/intl.dart';
 
+import '../providers/export_provider.dart';
 import 'phone_normalizer.dart';
 
 /// Service for exporting phone data to Excel.
@@ -16,24 +17,34 @@ class ExportService {
     List<Map<String, dynamic>>? smsMessages,
     List<Map<String, dynamic>>? callLogs,
     required String filePath,
-    required bool koreanMobileOnly,
+    required PrefixFilter prefixFilter,
     DateTime? sinceDate,
     required String deviceName,
   }) async {
     final exportTime = DateTime.now();
     final sinceDateMs = sinceDate?.millisecondsSinceEpoch;
+    // Copy filter data for isolate (PrefixFilter is immutable)
+    final allowPrefixes = List<String>.from(prefixFilter.allowPrefixes);
+    final disallowPrefixes = List<String>.from(prefixFilter.disallowPrefixes);
 
     await Isolate.run(() {
       final excel = Excel.createExcel();
       final normalizer = PhoneNormalizer();
+      // Recreate filter in isolate
+      final filter = PrefixFilter(
+        allowPrefixes: allowPrefixes,
+        disallowPrefixes: disallowPrefixes,
+      );
 
       // Export summary sheet first
       _exportSummarySheet(
         excel,
         deviceName: deviceName,
         exportTime: exportTime,
-        sinceDate: sinceDateMs != null ? DateTime.fromMillisecondsSinceEpoch(sinceDateMs) : null,
-        koreanMobileOnly: koreanMobileOnly,
+        sinceDate: sinceDateMs != null
+            ? DateTime.fromMillisecondsSinceEpoch(sinceDateMs)
+            : null,
+        prefixFilter: filter,
         contactsCount: contacts?.length ?? 0,
         smsCount: smsMessages?.length ?? 0,
         callsCount: callLogs?.length ?? 0,
@@ -44,17 +55,17 @@ class ExportService {
 
       // Export contacts sheet
       if (contacts != null && contacts.isNotEmpty) {
-        _exportContactsSheet(excel, contacts, normalizer, koreanMobileOnly);
+        _exportContactsSheet(excel, contacts, normalizer, filter);
       }
 
       // Export SMS sheet
       if (smsMessages != null && smsMessages.isNotEmpty) {
-        _exportSmsSheet(excel, smsMessages, normalizer, koreanMobileOnly, contactLookup);
+        _exportSmsSheet(excel, smsMessages, normalizer, filter, contactLookup);
       }
 
       // Export calls sheet
       if (callLogs != null && callLogs.isNotEmpty) {
-        _exportCallsSheet(excel, callLogs, normalizer, koreanMobileOnly, contactLookup);
+        _exportCallsSheet(excel, callLogs, normalizer, filter, contactLookup);
       }
 
       // Export All Numbers sheet (deduplicated from all sources)
@@ -64,7 +75,7 @@ class ExportService {
         smsMessages,
         callLogs,
         normalizer,
-        koreanMobileOnly,
+        filter,
         contactLookup,
       );
 
@@ -121,7 +132,7 @@ void _exportSummarySheet(
   required String deviceName,
   required DateTime exportTime,
   DateTime? sinceDate,
-  required bool koreanMobileOnly,
+  required PrefixFilter prefixFilter,
   required int contactsCount,
   required int smsCount,
   required int callsCount,
@@ -135,7 +146,10 @@ void _exportSummarySheet(
 
   // Device info
   sheet.appendRow([TextCellValue('Device'), TextCellValue(deviceName)]);
-  sheet.appendRow([TextCellValue('Export Date'), TextCellValue(dateFormat.format(exportTime))]);
+  sheet.appendRow([
+    TextCellValue('Export Date'),
+    TextCellValue(dateFormat.format(exportTime)),
+  ]);
   sheet.appendRow([TextCellValue('')]);
 
   // Filters
@@ -143,13 +157,27 @@ void _exportSummarySheet(
   sheet.appendRow([
     TextCellValue('Date Filter'),
     TextCellValue(
-      sinceDate != null ? 'Since ${DateFormat('yyyy-MM-dd').format(sinceDate)}' : 'All dates',
+      sinceDate != null
+          ? 'Since ${DateFormat('yyyy-MM-dd').format(sinceDate)}'
+          : 'All dates',
     ),
   ]);
   sheet.appendRow([
     TextCellValue('Phone Filter'),
-    TextCellValue(koreanMobileOnly ? 'Korean mobile only (010)' : 'All numbers'),
+    TextCellValue(prefixFilter.description),
   ]);
+  if (prefixFilter.allowPrefixes.isNotEmpty) {
+    sheet.appendRow([
+      TextCellValue('Allow Prefixes'),
+      TextCellValue(prefixFilter.allowPrefixes.join(', ')),
+    ]);
+  }
+  if (prefixFilter.disallowPrefixes.isNotEmpty) {
+    sheet.appendRow([
+      TextCellValue('Exclude Prefixes'),
+      TextCellValue(prefixFilter.disallowPrefixes.join(', ')),
+    ]);
+  }
   sheet.appendRow([TextCellValue('')]);
 
   // Counts
@@ -157,14 +185,17 @@ void _exportSummarySheet(
   sheet.appendRow([TextCellValue('Contacts'), IntCellValue(contactsCount)]);
   sheet.appendRow([TextCellValue('SMS'), IntCellValue(smsCount)]);
   sheet.appendRow([TextCellValue('Calls'), IntCellValue(callsCount)]);
-  sheet.appendRow([TextCellValue('Total'), IntCellValue(contactsCount + smsCount + callsCount)]);
+  sheet.appendRow([
+    TextCellValue('Total'),
+    IntCellValue(contactsCount + smsCount + callsCount),
+  ]);
 }
 
 void _exportContactsSheet(
   Excel excel,
   List<Map<String, dynamic>> contacts,
   PhoneNormalizer normalizer,
-  bool koreanMobileOnly,
+  PrefixFilter prefixFilter,
 ) {
   final sheet = excel['Contacts'];
 
@@ -186,8 +217,8 @@ void _exportContactsSheet(
         if (rawNumber != null) {
           final normalized = normalizer.normalize(rawNumber);
 
-          // Skip if Korean mobile filter is on and number doesn't start with 010
-          if (koreanMobileOnly && (normalized == null || !normalized.startsWith('010'))) {
+          // Apply prefix filter
+          if (!prefixFilter.shouldInclude(normalized)) {
             continue;
           }
 
@@ -206,7 +237,7 @@ void _exportSmsSheet(
   Excel excel,
   List<Map<String, dynamic>> messages,
   PhoneNormalizer normalizer,
-  bool koreanMobileOnly,
+  PrefixFilter prefixFilter,
   Map<String, String> contactLookup,
 ) {
   final sheet = excel['SMS'];
@@ -228,8 +259,8 @@ void _exportSmsSheet(
     if (address != null) {
       final normalized = normalizer.normalize(address);
 
-      // Skip if Korean mobile filter is on and number doesn't start with 010
-      if (koreanMobileOnly && (normalized == null || !normalized.startsWith('010'))) {
+      // Apply prefix filter
+      if (!prefixFilter.shouldInclude(normalized)) {
         continue;
       }
 
@@ -241,7 +272,9 @@ void _exportSmsSheet(
         TextCellValue(address),
         TextCellValue(normalized ?? address),
         date != null
-            ? DateTimeCellValue.fromDateTime(DateTime.fromMillisecondsSinceEpoch(date))
+            ? DateTimeCellValue.fromDateTime(
+                DateTime.fromMillisecondsSinceEpoch(date),
+              )
             : TextCellValue(''),
         TextCellValue(type ?? ''),
       ]);
@@ -253,7 +286,7 @@ void _exportCallsSheet(
   Excel excel,
   List<Map<String, dynamic>> calls,
   PhoneNormalizer normalizer,
-  bool koreanMobileOnly,
+  PrefixFilter prefixFilter,
   Map<String, String> contactLookup,
 ) {
   final sheet = excel['Calls'];
@@ -278,20 +311,24 @@ void _exportCallsSheet(
     if (number != null) {
       final normalized = normalizer.normalize(number);
 
-      // Skip if Korean mobile filter is on and number doesn't start with 010
-      if (koreanMobileOnly && (normalized == null || !normalized.startsWith('010'))) {
+      // Apply prefix filter
+      if (!prefixFilter.shouldInclude(normalized)) {
         continue;
       }
 
       // Use call's name if available, otherwise look up from contacts
-      final name = callName ?? (normalized != null ? (contactLookup[normalized] ?? '') : '');
+      final name =
+          callName ??
+          (normalized != null ? (contactLookup[normalized] ?? '') : '');
 
       sheet.appendRow([
         TextCellValue(name),
         TextCellValue(number),
         TextCellValue(normalized ?? number),
         timestamp != null
-            ? DateTimeCellValue.fromDateTime(DateTime.fromMillisecondsSinceEpoch(timestamp))
+            ? DateTimeCellValue.fromDateTime(
+                DateTime.fromMillisecondsSinceEpoch(timestamp),
+              )
             : TextCellValue(''),
         TextCellValue(callType ?? ''),
         duration != null ? IntCellValue(duration) : TextCellValue(''),
@@ -307,7 +344,7 @@ void _exportAllNumbersSheet(
   List<Map<String, dynamic>>? smsMessages,
   List<Map<String, dynamic>>? callLogs,
   PhoneNormalizer normalizer,
-  bool koreanMobileOnly,
+  PrefixFilter prefixFilter,
   Map<String, String> contactLookup,
 ) {
   // Collect all unique normalized numbers with their names
@@ -325,7 +362,7 @@ void _exportAllNumbersSheet(
           if (rawNumber != null) {
             final normalized = normalizer.normalize(rawNumber);
             if (normalized != null) {
-              if (koreanMobileOnly && !normalized.startsWith('010')) continue;
+              if (!prefixFilter.shouldInclude(normalized)) continue;
               // Keep first name found for this number
               if (!allNumbers.containsKey(normalized)) {
                 allNumbers[normalized] = name;
@@ -344,7 +381,7 @@ void _exportAllNumbersSheet(
       if (address != null) {
         final normalized = normalizer.normalize(address);
         if (normalized != null) {
-          if (koreanMobileOnly && !normalized.startsWith('010')) continue;
+          if (!prefixFilter.shouldInclude(normalized)) continue;
           if (!allNumbers.containsKey(normalized)) {
             allNumbers[normalized] = contactLookup[normalized] ?? '';
           }
@@ -361,10 +398,11 @@ void _exportAllNumbersSheet(
       if (number != null) {
         final normalized = normalizer.normalize(number);
         if (normalized != null) {
-          if (koreanMobileOnly && !normalized.startsWith('010')) continue;
+          if (!prefixFilter.shouldInclude(normalized)) continue;
           if (!allNumbers.containsKey(normalized)) {
             // Use call's name if available, otherwise lookup from contacts
-            allNumbers[normalized] = callName ?? (contactLookup[normalized] ?? '');
+            allNumbers[normalized] =
+                callName ?? (contactLookup[normalized] ?? '');
           }
         }
       }

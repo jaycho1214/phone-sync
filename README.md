@@ -46,7 +46,6 @@ PhoneSync creates a **direct, encrypted connection** between your Android phone 
 | You need data in Excel for analysis | You just need contact sync |
 | You distrust cloud backup services | You don't mind third-party access |
 | You're migrating phones and want records | You've never needed your SMS history |
-| You work with Korean phone numbers (010-xxxx) | N/A |
 
 ## Features
 
@@ -60,7 +59,10 @@ PhoneSync creates a **direct, encrypted connection** between your Android phone 
 
 ### Smart Filtering
 
-- **Korean Mobile Only**: Filter to 010-xxxx-xxxx numbers (skip landlines, international)
+- **Prefix Filter**: Flexible allow/disallow prefix rules for any country or number format
+  - Allow prefixes: Include only numbers starting with specific patterns (e.g., `010`, `+1`, `02`)
+  - Exclude prefixes: Skip numbers starting with specific patterns (e.g., `1588`, `080`)
+  - Quick presets for Korean Mobile, Korean All, US/Canada
 - **Date Range**: Export only messages/calls after a specific date
 - **Selective Export**: Choose which data types to include
 

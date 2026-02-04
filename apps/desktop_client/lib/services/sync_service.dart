@@ -18,7 +18,9 @@ class SyncService {
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 5),
         receiveTimeout: const Duration(minutes: 5),
-        headers: sessionToken != null ? {'Authorization': 'Bearer $sessionToken'} : null,
+        headers: sessionToken != null
+            ? {'Authorization': 'Bearer $sessionToken'}
+            : null,
       ),
     );
     // Trust self-signed certificate from Android server
@@ -60,7 +62,8 @@ class SyncService {
       final response = await _dio.post('/pair', data: data);
 
       final responseData = response.data as Map<String, dynamic>;
-      if (responseData['status'] == 'paired' && responseData['sessionToken'] != null) {
+      if (responseData['status'] == 'paired' &&
+          responseData['sessionToken'] != null) {
         final token = responseData['sessionToken'] as String;
         setSessionToken(token);
         return token;
@@ -117,7 +120,10 @@ class SyncService {
   /// Notify the Android device that we're unpairing.
   Future<void> notifyUnpair() async {
     try {
-      await _dio.post('/unpair', options: Options(receiveTimeout: const Duration(seconds: 5)));
+      await _dio.post(
+        '/unpair',
+        options: Options(receiveTimeout: const Duration(seconds: 5)),
+      );
     } catch (_) {
       // Ignore errors - best effort notification
     }
@@ -129,7 +135,10 @@ class SyncService {
     void Function(int received, int total)? onProgress,
   }) async {
     try {
-      final response = await _dio.get('/contacts', onReceiveProgress: onProgress);
+      final response = await _dio.get(
+        '/contacts',
+        onReceiveProgress: onProgress,
+      );
 
       final data = response.data as Map<String, dynamic>;
       final contacts = data['data'] as List<dynamic>?;

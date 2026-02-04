@@ -7,6 +7,67 @@ import '../services/sync_service.dart';
 /// Data types that can be exported
 enum DataType { contacts, sms, calls }
 
+/// Configuration for prefix-based phone number filtering.
+class PrefixFilter {
+  final List<String> allowPrefixes; // Only include numbers starting with these
+  final List<String> disallowPrefixes; // Exclude numbers starting with these
+
+  const PrefixFilter({
+    this.allowPrefixes = const [],
+    this.disallowPrefixes = const [],
+  });
+
+  /// Check if a normalized phone number passes the filter.
+  /// Returns true if the number should be included.
+  bool shouldInclude(String? normalizedNumber) {
+    if (normalizedNumber == null) return false;
+
+    // If allow prefixes are set, number must start with one of them
+    if (allowPrefixes.isNotEmpty) {
+      final matches = allowPrefixes.any(
+        (prefix) => normalizedNumber.startsWith(prefix),
+      );
+      if (!matches) return false;
+    }
+
+    // Check disallow prefixes (exclude if matches any)
+    if (disallowPrefixes.isNotEmpty) {
+      final excluded = disallowPrefixes.any(
+        (prefix) => normalizedNumber.startsWith(prefix),
+      );
+      if (excluded) return false;
+    }
+
+    return true;
+  }
+
+  /// Check if any filters are active
+  bool get isActive => allowPrefixes.isNotEmpty || disallowPrefixes.isNotEmpty;
+
+  /// Get a human-readable description of the filter
+  String get description {
+    if (!isActive) return 'All numbers';
+    final parts = <String>[];
+    if (allowPrefixes.isNotEmpty) {
+      parts.add('Allow: ${allowPrefixes.join(", ")}');
+    }
+    if (disallowPrefixes.isNotEmpty) {
+      parts.add('Exclude: ${disallowPrefixes.join(", ")}');
+    }
+    return parts.join(' | ');
+  }
+
+  PrefixFilter copyWith({
+    List<String>? allowPrefixes,
+    List<String>? disallowPrefixes,
+  }) {
+    return PrefixFilter(
+      allowPrefixes: allowPrefixes ?? this.allowPrefixes,
+      disallowPrefixes: disallowPrefixes ?? this.disallowPrefixes,
+    );
+  }
+}
+
 /// State for export operations.
 class ExportState {
   final bool isExporting;
@@ -14,7 +75,7 @@ class ExportState {
   final String currentPhase; // 'idle', 'fetching', 'exporting'
   final String? currentDataType; // 'contacts', 'sms', 'calls'
   final int fetchedCount;
-  final bool koreanMobileOnly;
+  final PrefixFilter prefixFilter;
   final DateTime? sinceDate;
   final String? lastExportPath;
   final String? error;
@@ -34,7 +95,7 @@ class ExportState {
     this.currentPhase = 'idle',
     this.currentDataType,
     this.fetchedCount = 0,
-    this.koreanMobileOnly = true,
+    this.prefixFilter = const PrefixFilter(),
     this.sinceDate,
     this.lastExportPath,
     this.error,
@@ -42,7 +103,11 @@ class ExportState {
     this.smsCount,
     this.callsCount,
     this.phoneNumbersCount,
-    this.selectedTypes = const {DataType.contacts, DataType.sms, DataType.calls},
+    this.selectedTypes = const {
+      DataType.contacts,
+      DataType.sms,
+      DataType.calls,
+    },
   });
 
   ExportState copyWith({
@@ -51,7 +116,7 @@ class ExportState {
     String? currentPhase,
     String? currentDataType,
     int? fetchedCount,
-    bool? koreanMobileOnly,
+    PrefixFilter? prefixFilter,
     DateTime? sinceDate,
     String? lastExportPath,
     String? error,
@@ -72,11 +137,13 @@ class ExportState {
       currentPhase: currentPhase ?? this.currentPhase,
       currentDataType: currentDataType ?? this.currentDataType,
       fetchedCount: fetchedCount ?? this.fetchedCount,
-      koreanMobileOnly: koreanMobileOnly ?? this.koreanMobileOnly,
+      prefixFilter: prefixFilter ?? this.prefixFilter,
       sinceDate: clearSinceDate ? null : (sinceDate ?? this.sinceDate),
       lastExportPath: lastExportPath ?? this.lastExportPath,
       error: error,
-      contactsCount: clearContactsCount ? null : (contactsCount ?? this.contactsCount),
+      contactsCount: clearContactsCount
+          ? null
+          : (contactsCount ?? this.contactsCount),
       smsCount: clearSmsCount ? null : (smsCount ?? this.smsCount),
       callsCount: clearCallsCount ? null : (callsCount ?? this.callsCount),
       phoneNumbersCount: clearPhoneNumbersCount
@@ -97,7 +164,8 @@ class ExportState {
     return '';
   }
 
-  bool get hasAnyCounts => (contactsCount ?? 0) > 0 || (smsCount ?? 0) > 0 || (callsCount ?? 0) > 0;
+  bool get hasAnyCounts =>
+      (contactsCount ?? 0) > 0 || (smsCount ?? 0) > 0 || (callsCount ?? 0) > 0;
 
   bool get hasAnySelected => selectedTypes.isNotEmpty;
 }
@@ -135,7 +203,8 @@ class ExportNotifier extends Notifier<ExportState> {
       final isComputing = counts['phoneNumbersComputing'] == 1;
 
       state = state.copyWith(
-        isLoadingCounts: isComputing, // Keep loading if phone numbers still computing
+        isLoadingCounts:
+            isComputing, // Keep loading if phone numbers still computing
         contactsCount: counts['contacts'] ?? 0,
         smsCount: counts['sms'] ?? 0,
         callsCount: counts['calls'] ?? 0,
@@ -161,9 +230,62 @@ class ExportNotifier extends Notifier<ExportState> {
     state = state.copyWith(selectedTypes: newSelected);
   }
 
-  /// Set the Korean mobile filter.
-  void setKoreanMobileFilter(bool value) {
-    state = state.copyWith(koreanMobileOnly: value);
+  /// Set the prefix filter.
+  void setPrefixFilter(PrefixFilter filter) {
+    state = state.copyWith(prefixFilter: filter);
+  }
+
+  /// Add an allow prefix.
+  void addAllowPrefix(String prefix) {
+    final trimmed = prefix.trim();
+    if (trimmed.isEmpty) return;
+    final current = state.prefixFilter.allowPrefixes;
+    if (!current.contains(trimmed)) {
+      state = state.copyWith(
+        prefixFilter: state.prefixFilter.copyWith(
+          allowPrefixes: [...current, trimmed],
+        ),
+      );
+    }
+  }
+
+  /// Remove an allow prefix.
+  void removeAllowPrefix(String prefix) {
+    final current = state.prefixFilter.allowPrefixes;
+    state = state.copyWith(
+      prefixFilter: state.prefixFilter.copyWith(
+        allowPrefixes: current.where((p) => p != prefix).toList(),
+      ),
+    );
+  }
+
+  /// Add a disallow prefix.
+  void addDisallowPrefix(String prefix) {
+    final trimmed = prefix.trim();
+    if (trimmed.isEmpty) return;
+    final current = state.prefixFilter.disallowPrefixes;
+    if (!current.contains(trimmed)) {
+      state = state.copyWith(
+        prefixFilter: state.prefixFilter.copyWith(
+          disallowPrefixes: [...current, trimmed],
+        ),
+      );
+    }
+  }
+
+  /// Remove a disallow prefix.
+  void removeDisallowPrefix(String prefix) {
+    final current = state.prefixFilter.disallowPrefixes;
+    state = state.copyWith(
+      prefixFilter: state.prefixFilter.copyWith(
+        disallowPrefixes: current.where((p) => p != prefix).toList(),
+      ),
+    );
+  }
+
+  /// Clear all prefix filters.
+  void clearPrefixFilters() {
+    state = state.copyWith(prefixFilter: const PrefixFilter());
   }
 
   /// Set the since date filter for SMS/calls.
@@ -212,7 +334,8 @@ class ExportNotifier extends Notifier<ExportState> {
           syncService: syncService,
           dataType: 'contacts',
           fetcher: () => syncService.fetchContacts(
-            onProgress: (received, _) => state = state.copyWith(fetchedCount: received),
+            onProgress: (received, _) =>
+                state = state.copyWith(fetchedCount: received),
           ),
         );
       }
@@ -223,7 +346,8 @@ class ExportNotifier extends Notifier<ExportState> {
           dataType: 'sms',
           fetcher: () => syncService.fetchSms(
             since: sinceTimestamp,
-            onProgress: (received, _) => state = state.copyWith(fetchedCount: received),
+            onProgress: (received, _) =>
+                state = state.copyWith(fetchedCount: received),
           ),
         );
       }
@@ -234,14 +358,17 @@ class ExportNotifier extends Notifier<ExportState> {
           dataType: 'calls',
           fetcher: () => syncService.fetchCalls(
             since: sinceTimestamp,
-            onProgress: (received, _) => state = state.copyWith(fetchedCount: received),
+            onProgress: (received, _) =>
+                state = state.copyWith(fetchedCount: received),
           ),
         );
       }
 
       // Check if we have any data
       final totalItems =
-          (contacts?.length ?? 0) + (smsMessages?.length ?? 0) + (callLogs?.length ?? 0);
+          (contacts?.length ?? 0) +
+          (smsMessages?.length ?? 0) +
+          (callLogs?.length ?? 0);
 
       if (totalItems == 0) {
         await syncService.reportSyncStatus(action: 'complete');
@@ -283,7 +410,7 @@ class ExportNotifier extends Notifier<ExportState> {
         smsMessages: smsMessages,
         callLogs: callLogs,
         filePath: filePath,
-        koreanMobileOnly: state.koreanMobileOnly,
+        prefixFilter: state.prefixFilter,
         sinceDate: state.sinceDate,
         deviceName: deviceName,
       );
@@ -296,7 +423,11 @@ class ExportNotifier extends Notifier<ExportState> {
         callsSynced: callLogs?.length,
       );
 
-      state = state.copyWith(isExporting: false, currentPhase: 'idle', lastExportPath: filePath);
+      state = state.copyWith(
+        isExporting: false,
+        currentPhase: 'idle',
+        lastExportPath: filePath,
+      );
     } catch (e) {
       // Report error/completion to Android
       await syncService.reportSyncStatus(action: 'complete');
@@ -315,7 +446,11 @@ class ExportNotifier extends Notifier<ExportState> {
     required Future<List<Map<String, dynamic>>> Function() fetcher,
   }) async {
     state = state.copyWith(currentDataType: dataType, fetchedCount: 0);
-    await syncService.reportSyncStatus(action: 'progress', phase: dataType, currentCount: 0);
+    await syncService.reportSyncStatus(
+      action: 'progress',
+      phase: dataType,
+      currentCount: 0,
+    );
 
     final data = await fetcher();
 
@@ -341,4 +476,6 @@ class ExportNotifier extends Notifier<ExportState> {
 }
 
 /// Provider for export state.
-final exportProvider = NotifierProvider<ExportNotifier, ExportState>(ExportNotifier.new);
+final exportProvider = NotifierProvider<ExportNotifier, ExportState>(
+  ExportNotifier.new,
+);

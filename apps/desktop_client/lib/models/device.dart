@@ -53,7 +53,11 @@ class Device {
   }
 
   /// Create Device from manual IP:port entry.
-  factory Device.manual({required String host, required int port, String name = 'Manual Device'}) {
+  factory Device.manual({
+    required String host,
+    required int port,
+    String name = 'Manual Device',
+  }) {
     return Device(name: name, host: host, port: port, allAddresses: [host]);
   }
 

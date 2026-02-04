@@ -41,7 +41,10 @@ class PhoneSyncApp extends StatelessWidget {
   ThemeData _buildTheme() {
     return ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(seedColor: AppColors.accent, brightness: Brightness.light),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: AppColors.accent,
+        brightness: Brightness.light,
+      ),
       scaffoldBackgroundColor: AppColors.background,
       cardTheme: CardThemeData(
         elevation: 0,
@@ -113,11 +116,17 @@ class PhoneSyncApp extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.textPrimary, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.textPrimary,
+            width: 1.5,
+          ),
         ),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         hintStyle: const TextStyle(color: AppColors.textMuted),
       ),
     );
@@ -127,7 +136,10 @@ class PhoneSyncApp extends StatelessWidget {
   Route<dynamic>? _generateRoute(RouteSettings settings) {
     switch (settings.name) {
       case '/discovery':
-        return MaterialPageRoute(builder: (_) => const DiscoveryScreen(), settings: settings);
+        return MaterialPageRoute(
+          builder: (_) => const DiscoveryScreen(),
+          settings: settings,
+        );
       case '/pairing':
         final device = settings.arguments as Device;
         return MaterialPageRoute(
@@ -135,9 +147,15 @@ class PhoneSyncApp extends StatelessWidget {
           settings: settings,
         );
       case '/home':
-        return MaterialPageRoute(builder: (_) => const HomeScreen(), settings: settings);
+        return MaterialPageRoute(
+          builder: (_) => const HomeScreen(),
+          settings: settings,
+        );
       default:
-        return MaterialPageRoute(builder: (_) => const DiscoveryScreen(), settings: settings);
+        return MaterialPageRoute(
+          builder: (_) => const DiscoveryScreen(),
+          settings: settings,
+        );
     }
   }
 }

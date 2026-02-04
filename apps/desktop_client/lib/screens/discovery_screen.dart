@@ -105,7 +105,8 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
     // If this device is already paired, verify connection first
     if (session.isPaired && session.device != null) {
       final pairedDevice = session.device!;
-      if (pairedDevice.host == device.host && pairedDevice.port == device.port) {
+      if (pairedDevice.host == device.host &&
+          pairedDevice.port == device.port) {
         // Check if session is still valid
         final syncService = session.syncService;
         if (syncService != null) {
@@ -167,7 +168,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
               const SizedBox(
                 width: 32,
                 height: 32,
-                child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textMuted),
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  color: AppColors.textMuted,
+                ),
               ),
               const SizedBox(height: 20),
               const Text(
@@ -200,7 +204,9 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         const SizedBox(height: 24),
 
                         // Device list or searching indicator
-                        Expanded(child: _buildContent(discoveryState, sessionState)),
+                        Expanded(
+                          child: _buildContent(discoveryState, sessionState),
+                        ),
 
                         // Manual entry section
                         if (_showManualEntry || discoveryState.devices.isEmpty)
@@ -276,7 +282,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 child: SizedBox(
                   width: 28,
                   height: 28,
-                  child: CircularProgressIndicator(strokeWidth: 2.5, color: AppColors.textMuted),
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.5,
+                    color: AppColors.textMuted,
+                  ),
                 ),
               ),
             ),
@@ -312,7 +321,11 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                 color: AppColors.surfaceAlt,
                 borderRadius: BorderRadius.circular(32),
               ),
-              child: const Icon(Icons.devices_other, size: 28, color: AppColors.textMuted),
+              child: const Icon(
+                Icons.devices_other,
+                size: 28,
+                color: AppColors.textMuted,
+              ),
             ),
             const SizedBox(height: 20),
             const Text(
@@ -426,9 +439,15 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.textPrimary, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.textPrimary,
+                            width: 1.5,
+                          ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
                       ),
                       style: const TextStyle(
                         fontSize: 14,
@@ -443,7 +462,10 @@ class _DiscoveryScreenState extends ConsumerState<DiscoveryScreen> {
                   GestureDetector(
                     onTap: _addManualDevice,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                       decoration: BoxDecoration(
                         color: AppColors.textPrimary,
                         borderRadius: BorderRadius.circular(8),
