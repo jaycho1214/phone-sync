@@ -158,6 +158,7 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                     horizontal: 16,
                     vertical: 12,
                   ),
+                  constraints: const BoxConstraints(maxWidth: 400),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFEE2E2),
                     borderRadius: BorderRadius.circular(8),
@@ -172,11 +173,13 @@ class _PairingScreenState extends ConsumerState<PairingScreen> {
                         size: 20,
                       ),
                       const SizedBox(width: 8),
-                      Text(
-                        _error!,
-                        style: const TextStyle(
-                          color: Color(0xFFDC2626),
-                          fontSize: 14,
+                      Flexible(
+                        child: Text(
+                          _error!,
+                          style: const TextStyle(
+                            color: Color(0xFFDC2626),
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
