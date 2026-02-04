@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../app.dart';
-import '../providers/export_provider.dart';
+import '../providers/export_provider.dart' show DataType, ExportState, PrefixFilter, exportProvider;
 import '../providers/session_provider.dart';
 
 /// Home screen - shown when paired with a device.
@@ -459,20 +459,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
               const SizedBox(width: 8),
-              // Korean mobile toggle
+              // Prefix filter button
               GestureDetector(
-                onTap: state.isExporting
-                    ? null
-                    : () => ref
-                          .read(exportProvider.notifier)
-                          .setKoreanMobileFilter(!state.koreanMobileOnly),
+                onTap: state.isExporting ? null : () => _showPrefixFilterDialog(context),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: state.koreanMobileOnly ? AppColors.accentLight : AppColors.surfaceAlt,
+                    color: state.prefixFilter.isActive
+                        ? AppColors.accentLight
+                        : AppColors.surfaceAlt,
                     borderRadius: BorderRadius.circular(6),
                     border: Border.all(
-                      color: state.koreanMobileOnly
+                      color: state.prefixFilter.isActive
                           ? AppColors.accent.withValues(alpha: 0.3)
                           : AppColors.border,
                     ),
@@ -481,18 +479,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        state.koreanMobileOnly ? Icons.check_box : Icons.check_box_outline_blank,
+                        Icons.filter_list,
                         size: 14,
-                        color: state.koreanMobileOnly ? AppColors.accent : AppColors.textMuted,
+                        color: state.prefixFilter.isActive
+                            ? AppColors.accent
+                            : AppColors.textMuted,
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '010 only',
+                        state.prefixFilter.isActive
+                            ? _getPrefixFilterLabel(state.prefixFilter)
+                            : 'Filter',
                         style: TextStyle(
                           fontSize: 11,
-                          color: state.koreanMobileOnly ? AppColors.accent : AppColors.textMuted,
+                          color: state.prefixFilter.isActive
+                              ? AppColors.accent
+                              : AppColors.textMuted,
                         ),
                       ),
+                      if (state.prefixFilter.isActive) ...[
+                        const SizedBox(width: 4),
+                        GestureDetector(
+                          onTap: () => ref.read(exportProvider.notifier).clearPrefixFilters(),
+                          child: const Icon(Icons.close, size: 12, color: AppColors.accent),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -655,5 +666,530 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
     );
+  }
+
+  String _getPrefixFilterLabel(PrefixFilter filter) {
+    final count = filter.allowPrefixes.length + filter.disallowPrefixes.length;
+    if (count == 1) {
+      if (filter.allowPrefixes.isNotEmpty) {
+        return filter.allowPrefixes.first;
+      }
+      return '!${filter.disallowPrefixes.first}';
+    }
+    return '$count rules';
+  }
+
+  Future<void> _showPrefixFilterDialog(BuildContext context) async {
+    await showDialog(
+      context: context,
+      builder: (context) => _PrefixFilterDialog(
+        initialFilter: ref.read(exportProvider).prefixFilter,
+        onApply: (filter) {
+          ref.read(exportProvider.notifier).setPrefixFilter(filter);
+        },
+      ),
+    );
+  }
+}
+
+/// Dialog for configuring prefix filters with a distinctive industrial aesthetic.
+class _PrefixFilterDialog extends StatefulWidget {
+  final PrefixFilter initialFilter;
+  final void Function(PrefixFilter) onApply;
+
+  const _PrefixFilterDialog({
+    required this.initialFilter,
+    required this.onApply,
+  });
+
+  @override
+  State<_PrefixFilterDialog> createState() => _PrefixFilterDialogState();
+}
+
+class _PrefixFilterDialogState extends State<_PrefixFilterDialog> {
+  late List<String> _allowPrefixes;
+  late List<String> _disallowPrefixes;
+  final _allowController = TextEditingController();
+  final _disallowController = TextEditingController();
+  final _allowFocusNode = FocusNode();
+  final _disallowFocusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _allowPrefixes = List.from(widget.initialFilter.allowPrefixes);
+    _disallowPrefixes = List.from(widget.initialFilter.disallowPrefixes);
+  }
+
+  @override
+  void dispose() {
+    _allowController.dispose();
+    _disallowController.dispose();
+    _allowFocusNode.dispose();
+    _disallowFocusNode.dispose();
+    super.dispose();
+  }
+
+  void _addAllowPrefix() {
+    final text = _allowController.text.trim();
+    if (text.isNotEmpty && !_allowPrefixes.contains(text)) {
+      setState(() {
+        _allowPrefixes.add(text);
+        _allowController.clear();
+      });
+    }
+  }
+
+  void _addDisallowPrefix() {
+    final text = _disallowController.text.trim();
+    if (text.isNotEmpty && !_disallowPrefixes.contains(text)) {
+      setState(() {
+        _disallowPrefixes.add(text);
+        _disallowController.clear();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Container(
+        width: 380,
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.filter_list, size: 18, color: AppColors.textPrimary),
+                ),
+                const SizedBox(width: 12),
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Phone Number Filter',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      Text(
+                        'Filter by number prefix',
+                        style: TextStyle(fontSize: 11, color: AppColors.textMuted),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.of(context).pop(),
+                  child: const Icon(Icons.close, size: 18, color: AppColors.textMuted),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Allow prefixes section
+            _buildPrefixSection(
+              title: 'Allow prefixes',
+              subtitle: 'Only include numbers starting with these',
+              prefixes: _allowPrefixes,
+              controller: _allowController,
+              focusNode: _allowFocusNode,
+              onAdd: _addAllowPrefix,
+              onRemove: (p) => setState(() => _allowPrefixes.remove(p)),
+              accentColor: AppColors.accent,
+              hint: 'e.g. 010, +1, 02',
+            ),
+            const SizedBox(height: 16),
+
+            // Disallow prefixes section
+            _buildPrefixSection(
+              title: 'Exclude prefixes',
+              subtitle: 'Skip numbers starting with these',
+              prefixes: _disallowPrefixes,
+              controller: _disallowController,
+              focusNode: _disallowFocusNode,
+              onAdd: _addDisallowPrefix,
+              onRemove: (p) => setState(() => _disallowPrefixes.remove(p)),
+              accentColor: AppColors.error,
+              hint: 'e.g. 1588, 1544, 080',
+            ),
+            const SizedBox(height: 20),
+
+            // Quick presets
+            _buildQuickPresets(),
+            const SizedBox(height: 20),
+
+            // Action buttons
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.of(context).pop(),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceAlt,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Cancel',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      widget.onApply(PrefixFilter(
+                        allowPrefixes: _allowPrefixes,
+                        disallowPrefixes: _disallowPrefixes,
+                      ));
+                      Navigator.of(context).pop();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.textPrimary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          'Apply Filter',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrefixSection({
+    required String title,
+    required String subtitle,
+    required List<String> prefixes,
+    required TextEditingController controller,
+    required FocusNode focusNode,
+    required VoidCallback onAdd,
+    required void Function(String) onRemove,
+    required Color accentColor,
+    required String hint,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: BoxDecoration(
+                color: accentColor,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Padding(
+          padding: const EdgeInsets.only(left: 16),
+          child: Text(
+            subtitle,
+            style: const TextStyle(fontSize: 10, color: AppColors.textMuted),
+          ),
+        ),
+        const SizedBox(height: 8),
+        // Input row
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: controller,
+                  focusNode: focusNode,
+                  style: const TextStyle(fontSize: 12, color: AppColors.textPrimary),
+                  decoration: InputDecoration(
+                    hintText: hint,
+                    hintStyle: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+                    filled: true,
+                    fillColor: AppColors.surfaceAlt,
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: BorderSide(color: accentColor, width: 1.5),
+                    ),
+                  ),
+                  onSubmitted: (_) => onAdd(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              GestureDetector(
+                onTap: onAdd,
+                child: AspectRatio(
+                  aspectRatio: 1,
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: accentColor.withValues(alpha: 0.3)),
+                    ),
+                    child: Center(
+                      child: Icon(Icons.add, size: 16, color: accentColor),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        // Tags
+        if (prefixes.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: prefixes.map((prefix) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: accentColor.withValues(alpha: 0.2)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      prefix,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: accentColor,
+                        fontFamily: 'monospace',
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    GestureDetector(
+                      onTap: () => onRemove(prefix),
+                      child: Icon(Icons.close, size: 12, color: accentColor),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildQuickPresets() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.bolt, size: 14, color: AppColors.warning),
+            const SizedBox(width: 6),
+            const Text(
+              'Quick presets',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const Spacer(),
+            // Clear button
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _allowPrefixes = [];
+                  _disallowPrefixes = [];
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: AppColors.border),
+                ),
+                child: const Text(
+                  'Clear',
+                  style: TextStyle(fontSize: 10, color: AppColors.textMuted),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        SizedBox(
+          height: 54,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            children: [
+              _buildPresetCard(
+                icon: '🇰🇷',
+                label: 'Korea',
+                detail: '010',
+                allow: ['010'],
+                disallow: [],
+              ),
+              const SizedBox(width: 8),
+              _buildPresetCard(
+                icon: '🇺🇸',
+                label: 'US / Canada',
+                detail: '+1',
+                allow: ['+1'],
+                disallow: [],
+              ),
+              const SizedBox(width: 8),
+              _buildPresetCard(
+                icon: '🇬🇧',
+                label: 'UK',
+                detail: '+44',
+                allow: ['+44'],
+                disallow: [],
+              ),
+              const SizedBox(width: 8),
+              _buildPresetCard(
+                icon: '🇯🇵',
+                label: 'Japan',
+                detail: '+81',
+                allow: ['+81'],
+                disallow: [],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPresetCard({
+    required String icon,
+    required String label,
+    required String detail,
+    required List<String> allow,
+    required List<String> disallow,
+  }) {
+    final isActive = _listEquals(_allowPrefixes, allow) &&
+        _listEquals(_disallowPrefixes, disallow) &&
+        (allow.isNotEmpty || disallow.isNotEmpty);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _allowPrefixes = List.from(allow);
+          _disallowPrefixes = List.from(disallow);
+        });
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        width: 110,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.accentLight : AppColors.surfaceAlt,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive ? AppColors.accent.withValues(alpha: 0.4) : AppColors.border,
+            width: isActive ? 1.5 : 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(icon, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: isActive ? AppColors.accent : AppColors.textPrimary,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    detail,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isActive ? AppColors.accent : AppColors.textMuted,
+                      fontFamily: 'monospace',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (isActive)
+              const Icon(Icons.check_circle, size: 14, color: AppColors.accent),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _listEquals(List<String> a, List<String> b) {
+    if (a.length != b.length) return false;
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
   }
 }
