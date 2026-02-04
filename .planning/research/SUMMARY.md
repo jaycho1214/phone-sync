@@ -1,322 +1,256 @@
 # Project Research Summary
 
 **Project:** jljm-phonesync
-**Domain:** Cross-platform phone data extraction and sync tool (Android to Desktop)
-**Researched:** 2026-02-03
+**Domain:** GitHub Actions CI/CD for Flutter multi-platform releases
+**Milestone:** v1.1 - Automated release pipeline
+**Researched:** 2026-02-04
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project is a Flutter monorepo enabling Android-to-desktop phone data extraction for SMS campaigns. The Android app extracts phone numbers from contacts, SMS, and call logs, while desktop apps (Windows/Mac) receive this data over the local network and export it to Excel. Research reveals a clear technical path using established Flutter packages and patterns, but with one critical constraint: Google Play Store prohibits SMS/call log permissions for non-default handler apps, requiring APK sideloading distribution.
+Building a multi-platform Flutter release pipeline requires a single GitHub Actions workflow with parallel platform-specific jobs, unified artifact handling, and explicit job dependencies. The recommended pattern uses tag-triggered builds (v*.*.*) that spawn 4 parallel build jobs (Android on ubuntu-latest, macOS on macos-latest, Windows on windows-latest, Linux on ubuntu-latest), each uploading uniquely-named artifacts to a final release job that creates a GitHub Release with all platform binaries.
 
-The recommended architecture uses a Flutter monorepo (Melos + pub workspaces) with the Android device acting as an HTTP server that advertises itself via mDNS. The desktop client discovers the device automatically, pairs via PIN, then fetches data over HTTP and exports to .xlsx using the `excel` package. This pattern is well-documented, with high-quality packages available for all key functions (flutter_contacts, call_log, another_telephony, nsd, excel).
+The technology stack is mature and well-documented: GitHub Actions with v5+ cache actions (v4 deprecated), subosito/flutter-action@v2 with built-in caching, Flutter 3.38.x stable, Java 17 for Android, and softprops/action-gh-release@v2 for release automation. Each platform has specific requirements: Android needs Java 17 with Gradle 8.x, Linux requires manual dependency installation (clang, cmake, ninja-build, libgtk-3-dev), and macOS builds consume 10x GitHub Actions minutes due to runner costs.
 
-The primary risks are: (1) Play Store rejection if distribution strategy isn't planned upfront, (2) memory exhaustion when querying large SMS/call log datasets without pagination, (3) platform-specific mDNS configuration issues, and (4) incremental sync missing deleted records. All of these have well-known mitigations that must be implemented from the start rather than retrofitted.
+Critical risks include Java/Gradle version mismatches breaking Android builds, missing Linux dependencies causing CMake failures, and macOS certificate validation issues on macos-15 runners. Prevention strategies: explicitly set Java 17 via actions/setup-java, install Linux dependencies before Flutter build, and pin to macos-14 until certificate issues are resolved. The pipeline should prioritize unsigned builds for sideloading initially, deferring Android signing and macOS notarization to later phases once basic automation works.
 
 ## Key Findings
 
 ### Recommended Stack
 
-Flutter 3.27+ with Dart 3.6+ provides native pub workspace support, eliminating the need for pubspec_overrides hacks. Melos 7.4.0 builds on this foundation as the industry standard for Flutter monorepos. For state management, Riverpod 3.x is the 2026 community default, offering compile-time safety and less boilerplate than BLoC (which is overkill for this scope).
+The research identifies a battle-tested CI/CD stack using GitHub-hosted runners and official Flutter actions. The core pattern uses actions/checkout@v6 (Node.js 24, latest security patches), subosito/flutter-action@v2 (built-in Flutter/pub caching), actions/setup-java@v5 (Temurin JDK 17), actions/cache@v5 (required, v4 deprecated Feb 2025), and softprops/action-gh-release@v2 (draft releases, multi-artifact uploads). Flutter 3.38.x stable (channel: stable) with bundled Dart 3.10.x matches project requirements. Melos 7.1.0 via bluefireteam/melos-action@v3 handles monorepo bootstrap.
 
 **Core technologies:**
-- **Flutter 3.27+ / Dart 3.6+**: Cross-platform framework with mature desktop support and native workspace support
-- **Melos 7.4.0**: Monorepo management with CI/CD integration, versioning, and workspace linking
-- **Riverpod 3.x**: State management with compile-time safety and built-in async handling
-- **flutter_contacts / call_log / another_telephony**: Platform-specific data access packages with comprehensive APIs
-- **nsd 4.1.0**: mDNS service discovery across all target platforms (Android/Windows/Mac)
-- **dart:io Socket/SecureSocket**: Native TCP/TLS for custom protocol, no external dependencies
-- **excel 4.0.6**: Pure Dart Excel generation, cross-platform, no licensing required
+- **Flutter SDK 3.38.x stable** — current stable with Impeller default, supports all target platforms; use `channel: stable` for automatic security patches
+- **Java 17 (Temurin)** — required for Android Gradle 8.x builds; explicitly set to avoid version drift
+- **GitHub Actions (v5+ actions)** — cache v5 required (80% faster, 10GB+ limit), v6 checkout (Node.js 24); old versions deprecated
+- **subosito/flutter-action@v2** — official Flutter environment with built-in pub/SDK caching; eliminates manual cache configuration
+- **softprops/action-gh-release@v2** — standard release automation with draft support and file glob uploads; handles multi-artifact releases cleanly
+- **Melos 7.1.0** — monorepo workspace management already configured; use for bootstrap, skip melos exec for platform builds
 
-**Critical version requirements:**
-- Flutter 3.27+ required for stable desktop support
-- Dart 3.6+ required for pub workspaces (eliminates pubspec_overrides)
-- another_telephony 0.4.1 (April 2025) is the maintained fork of deprecated telephony package
-
-**Distribution constraint:** READ_SMS, READ_CALL_LOG, and READ_CONTACTS permissions disqualify apps from Google Play Store unless they are default handlers. This project MUST target APK sideloading, F-Droid, or enterprise distribution from day one.
+**Version compatibility notes:**
+- Melos 7.x requires Dart 3.6+ (project uses ^3.10.0, compatible)
+- Java 17 matches android/app/build.gradle JavaVersion.VERSION_17
+- macos-latest = macOS 15 as of Aug 2025 (has certificate issues, pin to macos-14)
+- actions/cache@v4 deprecated Feb 2025, must use v5
 
 ### Expected Features
 
-Research across similar tools (SMS Import/Export, Dr.Fone, Contact To Excel) reveals clear feature tiers.
+Release automation for Flutter follows a standard pattern: tag-triggered builds are the industry norm, multi-platform parallel builds are expected, SDK/dependency caching prevents 5-10 minute delays, and GitHub Releases provide artifact hosting. Android signing is table stakes (unsigned APKs won't install on most devices), while macOS code signing and notarization are differentiators that eliminate Gatekeeper warnings but add significant complexity (Apple Developer Program, certificate handling, notarization API).
 
 **Must have (table stakes):**
-- Extract contacts with phone numbers - users expect this as core functionality
-- Extract SMS sender/recipient numbers - primary value proposition for promotional leads
-- Extract call log numbers - completes the phone number universe
-- Export to Excel-compatible format - user specified Excel; CSV/XLSX are standard
-- Local network transfer (no cloud) - security requirement
-- No root required - modern Android restricts root access
-- One-click export workflow - "on-demand, direct export" per requirements
+- Tag-triggered builds — standard `on: push: tags: ["v*.*.*"]` pattern users expect
+- Multi-platform matrix — build Android APK, macOS app, Windows app, Linux app in parallel
+- Flutter SDK caching — `cache: true` in flutter-action prevents 5+ min SDK downloads
+- GitHub Release creation — users expect downloadable artifacts on Releases page
+- Artifact upload — all platform builds attached to release with unique names
+- Version extraction from tag — release name/version matches git tag
 
 **Should have (competitive):**
-- Phone number deduplication - same number appears across sources, export unique list
-- Phone number normalization - consistent E.164 or local format
-- Source tagging - know where each number came from (contact/SMS/call)
-- Merge with contact names - export "Name, Phone" not just numbers
-- Date range filtering - only numbers from last N days
-- Wireless auto-discovery - mDNS eliminates manual IP entry
+- Changelog generation — `generate_release_notes: true` auto-generates from commits
+- Pre-release handling — pattern match on `-rc`, `-beta` tags, set `prerelease: true`
+- Draft releases — `draft: true` allows review before publishing
+- Artifact checksums — SHA256 for each binary for security verification
+- Build metadata — include git SHA, build date for debugging production issues
 
 **Defer (v2+):**
-- Incremental export (new numbers only) - full export is fast enough initially
-- Scheduled/automatic export - on-demand sufficient for internal use
-- Native XLSX with styling - CSV works in Excel, native XLSX is polish
-- Multiple export formats - start with CSV, add XLSX later
-- Browse/filter UI on phone - user explicitly requested "no browse/filter UI"
+- Android signed APKs — requires keystore secrets, base64 encoding (defer until unsigned pipeline works)
+- macOS code signing — requires Apple Developer Program ($99/yr), certificate handling, adds 5-10 min
+- macOS notarization — requires Apple ID, app-specific password, team ID (complex setup)
+- DMG creation for macOS — professional packaging adds 2-3 min, use raw .app zip initially
+- Windows MSIX signing — requires certificate, similar complexity to macOS signing
+- Linux AppImage — universal package format, defer to v2 (tar.gz sufficient initially)
+- Store publishing — Play Store, Mac App Store add API keys, review processes (not needed for direct distribution)
+- Melos version automation — conventional commits + `melos version` (overkill for small team)
 
-**Anti-features (explicitly avoid):**
-- Cloud sync - security requirement mandates local network only
-- Message content export - privacy concern, only need phone numbers
-- Backup/restore - different product category
-- Edit/delete capabilities - read-only extraction minimizes risk
+### Workflow Architecture
 
-### Architecture Approach
-
-The architecture enables a Flutter monorepo with platform-specific apps sharing common code through packages. The Android device acts as both data source and HTTP server, while the desktop app acts as HTTP client and Excel exporter.
+The workflow architecture uses a single file (.github/workflows/release.yml) with 6 jobs: one test job, four platform-specific build jobs, and one release job. This pattern enables job synchronization via `needs: [build-android, build-macos, build-windows, build-linux]`, artifact passing via upload-artifact@v4/download-artifact@v4, single trigger point (tag push), and automatic failure handling (release skipped if any build fails). Separate jobs are preferred over matrix strategy because different apps (android_provider vs desktop_client), different build commands (apk/macos/windows/linux), different artifact paths, and different dependencies per platform make matrices complex. Builds run in parallel after test passes, then release waits for all builds.
 
 **Major components:**
-1. **android_provider app** — Accesses phone data (SMS/calls/contacts), runs HTTP server, advertises via mDNS
-2. **desktop_consumer app** — Discovers devices via mDNS, fetches data over HTTP, exports to Excel
-3. **core package** — Shared data models (Contact, CallLog, SMS), constants, utilities
-4. **network_protocol package** — API contract (routes, request/response models, PIN auth)
+1. **Test job** (ubuntu-latest) — runs `melos bootstrap`, `melos run analyze`, `melos run test` before any builds start
+2. **Build jobs** (platform-native runners) — each uses `defaults.run.working-directory` to target correct app, runs `flutter build [platform]`, packages output (zip/tar.gz), uploads with unique artifact name
+3. **Release job** (ubuntu-latest) — downloads all artifacts with `merge-multiple: true`, creates GitHub Release with `softprops/action-gh-release@v2`, uploads all binaries
 
-**Data flow:**
-1. Android advertises `_phonesync._tcp` service via mDNS on startup
-2. Desktop discovers service automatically, displays discovered devices
-3. User initiates pairing - Android generates 6-digit PIN, desktop prompts for entry
-4. Desktop sends POST /pair with PIN, Android validates and returns session token
-5. Desktop calls GET /sms, GET /calls, GET /contacts with session token
-6. Desktop processes responses, writes to .xlsx using excel package
+**Artifact flow pattern:**
+```
+build-android → [android-apk]
+build-macos   → [macos-app]      → download (merge) → release job → GitHub Release
+build-windows → [windows-app]
+build-linux   → [linux-app]
+```
 
-**Key patterns:**
-- **Monorepo with Melos + Pub Workspaces** - eliminates pubspec_overrides, standard approach for multi-package Flutter projects
-- **Android as HTTP Server (dart:io)** - embedded server pattern for mobile device providing data to other devices
-- **mDNS Service Discovery (nsd package)** - zero-config networking, cross-platform support
-- **PIN-based pairing** - simple authentication without certificate management
-- **Paginated content provider queries** - LIMIT/OFFSET to avoid O(n²) cursor behavior with large datasets
+**Critical v4 change:** Each artifact name must be unique (cannot upload to same name from multiple jobs). Use descriptive names: `android-apk`, `macos-app`, `windows-app`, `linux-app`.
 
 ### Critical Pitfalls
 
-Research identified 14 pitfalls across criticality levels. The top 5 that could cause rewrites or major issues:
+The top pitfalls break builds or cause silent failures: Java/Gradle version mismatches cause "Unsupported class file major version" errors (Flutter 3.38+ requires Java 17, explicitly set via actions/setup-java@v5 with Temurin distribution). Missing Linux dependencies cause "CMake was unable to find Ninja" errors (ubuntu runners don't include GTK3/Ninja, must `apt-get install clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev` before flutter build linux). macOS certificate validation fails intermittently on macos-15 runners (pin to macos-14 or implement proper keychain setup). Android keystore misconfiguration results in unsigned APKs (base64 encode keystore, decode in workflow, pass passwords via environment variables).
 
-1. **Google Play Store SMS/Call Log Rejection** — Apps requesting READ_SMS or READ_CALL_LOG without being default handlers are rejected. Prevention: Plan for APK sideloading distribution from Phase 1, not after development completes.
-
-2. **Cursor Memory Exhaustion** — Querying SMS/call logs with 50,000+ entries causes OutOfMemory errors due to O(n²) CursorWindow paging. Prevention: Implement LIMIT/OFFSET pagination from day one in Phase 2, always close cursors, stream processing.
-
-3. **Incremental Sync Missing Deleted Records** — Timestamp-based sync ("modified since X") doesn't capture deletions, causing "ghost" records. Prevention: Design tombstone awareness or ID reconciliation into sync protocol in Phase 3.
-
-4. **Platform Channel Type Mismatch** — Dart/Kotlin type mismatches only surface at runtime, causing crashes. Prevention: Document contracts, use only StandardMessageCodec types, integration test actual calls not mocks.
-
-5. **mDNS Discovery Platform Differences** — Works in simulator but fails on real devices due to platform-specific requirements (iOS Info.plist, macOS entitlements, Android service name format). Prevention: Configure all platforms early in Phase 4, test on real hardware.
-
-**Additional moderate pitfalls:**
-- macOS networking entitlements not configured (blocks socket connections)
-- Excel generation with 50,000+ rows causes OOM (need async save and dispose)
-- Android permission dialogs not showing on certain versions (need retry logic)
-- Phone + call log permission coupling on Android 9+ (users confused by grouped requests)
+1. **Java/Gradle version mismatch** — explicitly set Java 17 via `actions/setup-java@v5` with `distribution: temurin`, verify Gradle wrapper uses 8.x, Android Studio Flamingo+ bundles Java 17 but CI may differ
+2. **Missing Linux build dependencies** — install BEFORE flutter build: `sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev`
+3. **Building platform on wrong runner** — macOS MUST use macos-latest, Windows MUST use windows-latest, Linux/Android use ubuntu-latest
+4. **macOS certificate validation on macos-15** — pin to `macos-14` until certificate issues resolved, or implement proper temporary keychain setup
+5. **Artifact name collisions in v4** — use unique artifact names per platform, download with `merge-multiple: true` in release job
+6. **Release job running before builds complete** — use `needs: [build-android, build-macos, build-windows, build-linux]` to wait for all
+7. **Not setting workflow timeouts** — set `timeout-minutes: 30` per job to prevent stuck builds consuming minutes (macOS at 10x multiplier)
+8. **Not caching dependencies** — enable `cache: true` in flutter-action to avoid 5-10 min SDK downloads per build
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure follows technical dependencies and risk mitigation:
+Based on research, the implementation should follow a 3-phase approach: basic unsigned releases first, Android signing second, advanced packaging third. This ordering validates the core pipeline before adding signing complexity and minimizes risk.
 
-### Phase 1: Foundation & Monorepo Setup
-**Rationale:** Must establish build infrastructure before any feature development. Critical distribution decision (APK vs Play Store) must be made now to avoid later rework.
+### Phase 1: Basic Multi-Platform Release Pipeline
+**Rationale:** Establish the foundational workflow structure and validate tag-triggered builds work for all platforms before adding signing complexity. Unsigned builds are sufficient for sideloading and internal testing.
 
-**Delivers:**
-- Flutter 3.27+ with Dart 3.6+ workspace
-- Melos 7.4.0 configured with proper scripts
-- Package structure (core, network_protocol)
-- Distribution strategy documented (APK sideloading)
+**Delivers:** Tag-triggered release pipeline that builds unsigned Android APK, macOS .app (zipped), Windows executable (zipped), Linux bundle (tar.gz) and uploads all to GitHub Release with auto-generated release notes.
 
 **Addresses:**
-- Play Store rejection risk (Pitfall 1) by deciding distribution upfront
-- Monorepo confusion (Pitfall 10) by establishing patterns early
+- Table stakes: tag-triggered builds, multi-platform matrix, Flutter SDK caching, GitHub Release creation, artifact upload
+- Workflow architecture: single file with parallel jobs, artifact flow, job dependencies
+- Cost awareness: parallel builds minimize wall time, caching reduces minutes usage
 
 **Avoids:**
-- Discovering Play Store incompatibility after development
-- Workspace configuration issues causing dependency conflicts
+- Java/Gradle mismatch by explicitly setting Java 17 in Android job
+- Linux dependency errors by installing clang/cmake/ninja-build/libgtk-3-dev before build
+- Platform runner mismatch by using correct runs-on per platform
+- macOS certificate issues by pinning to macos-14 initially
+- Artifact collisions by using unique names per platform
 
-### Phase 2: Android Data Access Layer
-**Rationale:** Data extraction is the core value. Must implement pagination from start to avoid memory issues. Android app can be tested independently before network layer exists.
+**Implementation notes:**
+- Single workflow file: `.github/workflows/release.yml`
+- Trigger: `on: push: tags: ["v*.*.*"]`
+- Jobs: test → [build-android, build-macos, build-windows, build-linux] → release
+- Each build job sets `working-directory` to correct app (android_provider vs desktop_client)
+- Cache strategy: `cache: true` in subosito/flutter-action@v2
+- Set `timeout-minutes: 30` per job
+- Use `generate_release_notes: true` for automatic changelogs
 
-**Delivers:**
-- Permission handling (READ_SMS, READ_CALL_LOG, READ_CONTACTS)
-- Contacts extraction via flutter_contacts (paginated)
-- SMS extraction via another_telephony (paginated)
-- Call log extraction via call_log (paginated)
-- Data models in core package (freezed + json_serializable)
+### Phase 2: Android Signing
+**Rationale:** After validating the basic pipeline works, add Android signing to produce installable APKs. This is the highest-priority signing need because unsigned Android APKs won't install on most devices.
+
+**Delivers:** Signed Android APK releases using keystore secrets, ready for direct distribution.
 
 **Uses:**
-- flutter_contacts 1.1.9+2, call_log 6.0.1, another_telephony 0.4.1
-- permission_handler 12.0.1
-- freezed 3.2.4, json_serializable 6.12.0
+- Keystore base64 encoding pattern from PITFALLS-CICD.md
+- Environment variable pattern for KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
+- Existing android/app/build.gradle signingConfigs
 
 **Addresses:**
-- Cursor memory exhaustion (Pitfall 3) via LIMIT/OFFSET from day one
-- Permission dialog issues (Pitfall 8, 9) via testing on multiple Android versions
-- Platform channel crashes (Pitfall 4) via documented contracts
+- Table stakes: signed Android APK (unsigned won't install on most devices)
+- Secret management: KEYSTORE_BASE64, KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD
 
 **Avoids:**
-- Retrofitting pagination after discovering OOM errors
-- Permission handling bugs discovered in production
+- Keystore misconfiguration by validating base64 encoding/decoding works locally first
+- Committing secrets by using GitHub Secrets properly
+- Silent unsigned builds by verifying signingConfig applied in build.gradle
 
-### Phase 3: Local Network Protocol
-**Rationale:** Network layer depends on data models from Phase 2. Sync protocol design must account for deleted records from the start.
+**Implementation notes:**
+- Decode keystore before flutter build: `echo "$KEYSTORE_BASE64" | base64 --decode > android/app/keystore.jks`
+- Pass secrets via environment variables to match build.gradle expectations
+- Test locally first: generate keystore, encode, decode, build signed APK
+- Update build.gradle to read from environment if not already configured
 
-**Delivers:**
-- mDNS service discovery (nsd package)
-- HTTP server on Android (dart:io)
-- PIN pairing authentication
-- REST endpoints (/pair, /sms, /calls, /contacts)
-- Session token management
-- Sync protocol with tombstone awareness
+### Phase 3: Advanced Packaging (Optional)
+**Rationale:** Improve distribution experience with professional packaging formats. This is optional because raw .app zips and .zip/.tar.gz bundles work for direct distribution, but DMG/AppImage provide better UX.
+
+**Delivers:** macOS DMG (unsigned initially), Linux AppImage, improved Windows packaging.
 
 **Uses:**
-- nsd 4.1.0 for service registration (Android) and discovery (Desktop)
-- dart:io HttpServer for embedded server
-- dart:io SecureSocket for TLS (if adding encryption)
-
-**Implements:**
-- network_protocol package (API routes, request/response models)
-- Tombstone tracking or ID reconciliation for deletions
+- `create-dmg` tool for macOS DMG creation
+- AppImage tools for Linux universal package
+- Existing platform build outputs as source
 
 **Addresses:**
-- Missing deleted records (Pitfall 2) via tombstone/reconciliation design
-- Interrupted sync state (Pitfall 12) via checkpoints and atomic commits
-- mDNS platform differences (Pitfall 5) via proper configuration for each platform
+- Differentiators: professional packaging formats
+- User experience: easier installation, better first impression
 
-**Avoids:**
-- Discovering deleted records issue after launch
-- Hardcoding IP addresses (poor UX)
+**Defers:**
+- macOS code signing and notarization (complex, requires Apple Developer Program)
+- Windows MSIX signing (complex, requires certificate)
+- Store publishing (not needed for direct distribution)
 
-### Phase 4: Desktop Client & Discovery
-**Rationale:** Depends on working HTTP server from Phase 3. Platform-specific entitlements must be configured for macOS networking to work.
-
-**Delivers:**
-- Desktop app (Windows/Mac) with Riverpod state management
-- mDNS discovery UI
-- Pairing flow (PIN entry)
-- Data sync service (HTTP client)
-- Platform entitlements (macOS networking, Windows firewall handling)
-
-**Uses:**
-- nsd 4.1.0 for service discovery
-- http or dio package for REST client
-- Riverpod 3.2.0 for state management
-
-**Addresses:**
-- Desktop networking entitlements (Pitfall 6) for macOS
-- mDNS real device testing (Pitfall 5)
-- Unencrypted transfer (Pitfall 11) if adding TLS
-
-**Avoids:**
-- "Operation not permitted" errors on macOS
-- Discovery working in emulator but failing on real devices
-
-### Phase 5: Excel Export
-**Rationale:** Export is the final output, depends on synced data from Phase 4. Memory management must be designed in from start.
-
-**Delivers:**
-- Excel generation (excel package)
-- Multi-sheet workbook (SMS, Calls, Contacts)
-- File save dialogs (file_picker)
-- Async save with proper disposal
-- Large dataset handling (50,000+ row testing)
-
-**Uses:**
-- excel 4.0.6 for .xlsx generation
-- path_provider 2.1.5 for platform directories
-- file_picker 10.3.10 for save dialogs
-
-**Addresses:**
-- Excel memory exhaustion (Pitfall 7) via async save and dispose
-- Large dataset testing (test with realistic volumes)
-
-**Avoids:**
-- OOM crashes during export on real datasets
-- Memory leaks from not disposing workbooks
-
-### Phase 6: Polish & Packaging
-**Rationale:** User-facing improvements after core functionality works end-to-end.
-
-**Delivers:**
-- Phone number deduplication and normalization
-- Source tagging (contact/SMS/call)
-- Contact name merging
-- Date range filtering
-- Windows MSIX packaging (msix package)
-- macOS code signing
-- APK signing and distribution documentation
-
-**Uses:**
-- msix 3.16.13 for Windows installer
-- Native Flutter build tools for macOS
+**Implementation notes:**
+- Add packaging steps to build jobs after flutter build
+- DMG creation adds 2-3 min to macOS build
+- AppImage tools available via apt-get on ubuntu-latest
+- Can iterate on packaging without affecting core pipeline
 
 ### Phase Ordering Rationale
 
-- **Foundation before features:** Can't build apps without monorepo infrastructure
-- **Data access before network:** Android data extraction can be tested independently, provides real data for protocol design
-- **Protocol before clients:** HTTP server must exist before client can consume it
-- **Sync before export:** Can't export what hasn't been synced
-- **Core features before polish:** Deduplication and normalization add value but aren't blocking
+- **Phase 1 first** because it establishes the core workflow structure and validates all platform builds work without signing complexity. Unsigned builds are sufficient for sideloading and internal testing. This allows catching workflow structure issues (job dependencies, artifact flow, runner selection) early.
 
-This order minimizes rework by:
-- Making critical decisions (distribution strategy) upfront
-- Implementing patterns (pagination, tombstones) from the start rather than retrofitting
-- Enabling independent testing of each layer before integration
-- Addressing platform-specific issues (entitlements, permissions) when building that layer
+- **Phase 2 second** because Android signing is the highest-priority enhancement (unsigned APKs won't install on most devices), and the implementation is well-documented with clear prevention strategies from PITFALLS-CICD.md. Android signing is lower complexity than macOS signing (no notarization, no Apple Developer Program required).
+
+- **Phase 3 deferred** because DMG/AppImage are nice-to-have packaging improvements, not blockers. Raw .app zips and tar.gz bundles work for direct distribution. This phase can be added later based on user feedback about installation UX.
+
+- **Code signing deferred** because macOS notarization and Windows MSIX signing require external accounts (Apple Developer Program, certificate authorities), add 5-10 minutes to builds, and introduce failure modes (certificate expiration, notarization timeouts). Unsigned builds work for sideloading initially; add signing only if users report Gatekeeper/SmartScreen issues.
 
 ### Research Flags
 
-**Phases likely needing deeper research during planning:**
-- **Phase 3 (Network Protocol):** Custom sync protocol with tombstone tracking is non-standard, may need examples from CouchDB/Firebase
-- **Phase 5 (Excel Export):** Performance optimization for very large exports (100,000+ rows) may need profiling
-
 **Phases with standard patterns (skip research-phase):**
-- **Phase 1 (Foundation):** Melos setup is well-documented, standard monorepo pattern
-- **Phase 2 (Data Access):** Android ContentProvider queries are standard, packages have good docs
-- **Phase 4 (Desktop Client):** HTTP client + mDNS discovery are standard patterns
+- **Phase 1:** Well-documented in Flutter official docs and GitHub Actions marketplace. All actions have recent updates (2024-2026) and active maintenance. Pattern used by thousands of Flutter projects.
+- **Phase 2:** Android signing in CI is a solved problem with multiple tutorials. Keystore handling pattern is standardized.
+- **Phase 3:** DMG creation and AppImage packaging have established tooling (create-dmg, appimagetool) with clear documentation.
+
+**No phases require deeper research.** The research phase has already validated all technical approaches with official documentation (Flutter docs, GitHub Actions marketplace) and verified real-world usage patterns. Implementation can proceed directly to roadmap creation.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | All packages verified on pub.dev with recent updates, version compatibility confirmed |
-| Features | MEDIUM-HIGH | Table stakes verified across multiple tools, differentiators synthesized from comparisons |
-| Architecture | HIGH | Patterns verified via official docs (dart:io, nsd), similar implementations found in community |
-| Pitfalls | HIGH | Critical pitfalls backed by official docs (Play Store policy, Android CursorWindow), moderate pitfalls verified via GitHub issues |
+| Stack | HIGH | All actions verified with GitHub Marketplace (subosito/flutter-action v2.21.0, softprops/action-gh-release v2.5.0, actions/cache v5 required). Flutter 3.38.x stable is current. Version compatibility matrix cross-verified with official docs. |
+| Features | HIGH | Table stakes identified from Flutter CD docs and established CI/CD patterns. Differentiators based on community best practices (20+ Medium articles, GitHub discussions). Anti-features clearly scoped (no iOS target, no store publishing needed). |
+| Architecture | HIGH | Single workflow pattern verified with official GitHub Actions docs on job dependencies. Artifact flow pattern documented in actions/upload-artifact@v4 migration guide. Platform runner requirements from Flutter platform setup docs. |
+| Pitfalls | HIGH | Java/Gradle mismatch verified via Flutter issue #168896 and Android migration guide. Linux dependencies from Flutter Linux setup docs. macOS certificate issues from GitHub runner-images issues #12960, #12861 (current as of Jan 2026). All pitfalls have verified prevention strategies. |
 
 **Overall confidence:** HIGH
 
-The technical path is clear with established packages and patterns. The primary uncertainty is in estimating effort for sync protocol complexity, but the architecture decisions are sound.
+The research combines official documentation (Flutter 3.38.6 docs, GitHub Actions docs, action marketplace listings) with verified community patterns (20+ tutorials, GitHub issues with maintainer responses, runner-images issue tracker). All recommended actions have recent updates (2024-2026) and active maintenance. Version compatibility matrix cross-referenced across multiple sources. Pitfalls validated with specific GitHub issue numbers and official migration guides.
 
 ### Gaps to Address
 
-Areas where research was inconclusive or needs validation during implementation:
+**Cost monitoring:** GitHub Actions minutes usage estimation (92 min per release with macOS 10x multiplier) needs validation during first release. Monitor actual usage and adjust caching strategy if approaching free tier limits (2000 min/month). Consider building macOS less frequently if costs become an issue.
 
-- **Sync protocol complexity:** Tombstone tracking vs full ID reconciliation tradeoff needs prototyping in Phase 3
-- **Excel performance at scale:** Research shows issues at 50,000+ rows, but exact threshold for this use case needs testing
-- **TLS certificate management:** If adding encryption, self-signed certificate trust flow needs UX design (not covered in research)
-- **Android foreground service necessity:** Whether long syncs require foreground service depends on dataset size (test in Phase 3)
+**macOS certificate validation:** macos-15 certificate issues documented in runner-images tracker (issues #12960, #12861) as of Jan 2026. Current recommendation is to pin to macos-14. Monitor runner-images repo for resolution and migrate to macos-15 when stable. Alternative: implement proper temporary keychain setup (adds complexity).
+
+**Melos version update:** Project uses `melos ^7.0.0-dev.1` which is a dev version. Update to stable `^7.1.0` before implementing CI (noted in STACK-CICD.md compatibility matrix). Verify melos scripts (analyze, test) work with stable version locally before running in CI.
+
+**Android keystore location:** Project structure doesn't show existing android/app/keystore.jks or android/key.properties. Phase 2 requires generating a release keystore and configuring build.gradle signingConfigs. This is a prerequisite for Phase 2, not a research gap.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- [Melos 7.4.0](https://pub.dev/packages/melos) — Monorepo management verified
-- [nsd 4.1.0](https://pub.dev/packages/nsd) — mDNS cross-platform support verified
-- [flutter_contacts 1.1.9+2](https://pub.dev/packages/flutter_contacts) — Contacts API verified
-- [call_log 6.0.1](https://pub.dev/packages/call_log) — Call log API verified
-- [another_telephony 0.4.1](https://pub.dev/packages/another_telephony) — SMS API verified
-- [excel 4.0.6](https://pub.dev/packages/excel) — Excel generation verified
-- [Google Play Console: SMS/Call Log Policy](https://support.google.com/googleplay/android-developer/answer/10208820) — Permission restrictions
-- [Flutter Platform Channels](https://docs.flutter.dev/platform-integration/platform-channels) — Type safety guidance
-- [Android Large Database Queries](https://medium.com/androiddevelopers/large-database-queries-on-android-cb043ae626e8) — Cursor pagination
+- [Flutter Deployment - Windows](https://docs.flutter.dev/deployment/windows) — Flutter 3.38.6 docs, updated Sept 2025
+- [Flutter Deployment - macOS](https://docs.flutter.dev/deployment/macos) — Updated Oct 2025
+- [Flutter macOS Setup](https://docs.flutter.dev/platform-integration/macos/setup) — Updated Jan 2026
+- [Flutter Linux Setup](https://docs.flutter.dev/platform-integration/linux/setup) — Linux dependencies
+- [Flutter Android Java Gradle Migration Guide](https://docs.flutter.dev/release/breaking-changes/android-java-gradle-migration-guide) — Official migration guide
+- [Flutter 3.38 Release Notes](https://docs.flutter.dev/release/release-notes/release-notes-3.38.0) — Nov 2025
+- [GitHub Actions Workflow Syntax](https://docs.github.com/actions/using-workflows/workflow-syntax-for-github-actions) — Official docs
+- [GitHub Actions: Using jobs in a workflow](https://docs.github.com/en/actions/writing-workflows/choosing-what-your-workflow-does/using-jobs-in-a-workflow) — Job dependencies
+- [GitHub Actions Runner Pricing](https://docs.github.com/en/billing/reference/actions-runner-pricing) — Cost multipliers
+- [actions/checkout v6.0.1](https://github.com/actions/checkout) — Dec 2025
+- [actions/cache v5](https://github.com/actions/cache) — Required Feb 2025
+- [actions/setup-java v5](https://github.com/actions/setup-java) — Temurin support
+- [actions/upload-artifact v4](https://github.com/actions/upload-artifact) — Artifact changes
+- [subosito/flutter-action v2](https://github.com/subosito/flutter-action) — v2.21.0
+- [softprops/action-gh-release v2](https://github.com/softprops/action-gh-release) — v2.5.0
+- [bluefireteam/melos-action v3](https://github.com/bluefireteam/melos-action) — v3.5.0
 
 ### Secondary (MEDIUM confidence)
-- [Flutter Monorepo 2025/2026](https://medium.com/@sijalneupane5/flutter-monorepo-from-scratch-2025-going-into-2026-pub-workspaces-melos-explained-properly-fae98bfc8a6e) — Pub workspaces + Melos patterns
-- [Couchbase Tombstones](https://docs.couchbase.com/sync-gateway/current/manage/managing-tombstones.html) — Deletion tracking patterns
-- [Salesforce Mobile SDK Incremental Sync](https://developer.salesforce.com/docs/platform/mobile-sdk/guide/entity-framework-native-inc-sync.html) — Sync architecture patterns
-- GitHub issues: flutter-permission-handler #115, #770; Flutter #166843, #177307; Syncfusion #448
+- [Flutter Issue #168896](https://github.com/flutter/flutter/issues/168896) — Java/Gradle mismatch
+- [Flutter Issue #59750](https://github.com/flutter/flutter/issues/59750) — CMake/Ninja missing
+- [Flutter Issue #121052](https://github.com/flutter/flutter/issues/121052) — APK differences across OS
+- [Flutter Issue #130343](https://github.com/flutter/flutter/issues/130343) — GTK dependencies
+- [GitHub Runner Images #12960](https://github.com/actions/runner-images/issues/12960) — macOS 15 cert issues
+- [GitHub Runner Images #12861](https://github.com/actions/runner-images/issues/12861) — Intermittent cert errors
+- [GitHub Community Discussion #27028](https://github.com/orgs/community/discussions/27028) — GITHUB_TOKEN triggers
+- [macOS-latest Migration](https://github.blog/changelog/2025-07-11-upcoming-changes-to-macos-hosted-runners-macos-latest-migration-and-xcode-support-policy-updates/) — July 2025
+- [Medium: Automating Flutter Android Builds](https://medium.com/@abhayshankur/automating-flutter-android-builds-with-github-actions-77c172653525) — Dec 2025
+- [Angelo Cassano: Flutter Desktop GitHub Actions](https://angeloavv.medium.com/how-to-distribute-flutter-desktop-app-binaries-using-github-actions-f8d0f9be4d6b) — Community guide
+- [ProAndroidDev: Secure Android Signing](https://proandroiddev.com/how-to-securely-build-and-sign-your-android-app-with-github-actions-ad5323452ce) — Community tutorial
+- [Revelo: Reduce Flutter CI Time by 20%](https://www.revelo.com/blog/how-we-reduced-our-flutter-ci-execution-time-by-around-20) — Caching strategies
 
 ---
-*Research completed: 2026-02-03*
+*Research completed: 2026-02-04*
 *Ready for roadmap: yes*
