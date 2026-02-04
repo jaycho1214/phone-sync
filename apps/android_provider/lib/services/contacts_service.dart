@@ -9,6 +9,20 @@ class ContactsService {
     return contacts.where((c) => c.phones.isNotEmpty).length;
   }
 
+  /// Get count and phone numbers in a single query (optimization for UI)
+  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers() async {
+    final contacts = await FlutterContacts.getContacts(withProperties: true, withPhoto: false);
+    final withPhones = contacts.where((c) => c.phones.isNotEmpty).toList();
+
+    final phoneNumbers = <String>[];
+    for (final contact in withPhones) {
+      for (final phone in contact.phones) {
+        phoneNumbers.add(phone.number);
+      }
+    }
+    return (count: withPhones.length, phoneNumbers: phoneNumbers);
+  }
+
   /// Extract contacts with phone numbers, yielding in batches
   /// Note: flutter_contacts doesn't support timestamp filtering natively
   /// For contacts, we do full extraction (contacts change less frequently)

@@ -64,11 +64,14 @@ class PhoneSyncServer {
     HttpServer? server;
     for (var attempt = 0; attempt < 3; attempt++) {
       try {
+        // Use anyIPv6 for dual-stack support (accepts both IPv4 and IPv6)
+        // This fixes connection issues when mDNS returns IPv6 addresses
         server = await shelf_io.serve(
           router.call,
-          InternetAddress.anyIPv4,
+          InternetAddress.anyIPv6,
           _fixedPort,
           securityContext: securityContext,
+          shared: true, // Allow address reuse for dual-stack
         );
         break;
       } on SocketException catch (e) {

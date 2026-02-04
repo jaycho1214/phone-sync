@@ -67,6 +67,7 @@ class ExtractionNotifier extends Notifier<ExtractionState> {
 
   /// Refresh counts for all granted permissions
   /// Shows TOTAL counts (not incremental), matching what will be exported
+  /// Optimized: runs queries in parallel and extracts count + phone numbers in single query per source
   Future<void> refreshCounts({
     required bool hasContacts,
     required bool hasSms,
@@ -77,32 +78,42 @@ class ExtractionNotifier extends Notifier<ExtractionState> {
     cache.setComputing(true);
 
     try {
+      // Run all queries in parallel for better performance
+      final futures = <Future<({int count, List<String> phoneNumbers})>>[];
+
+      if (hasContacts) {
+        futures.add(_contactsService.getCountAndPhoneNumbers());
+      }
+      if (hasSms) {
+        futures.add(_smsService.getCountAndPhoneNumbers());
+      }
+      if (hasCallLog) {
+        futures.add(_callLogService.getCountAndPhoneNumbers());
+      }
+
+      final results = await Future.wait(futures);
+
+      // Extract results based on which permissions were granted
       int contacts = 0;
       int sms = 0;
       int calls = 0;
       final phoneNumbers = <String>{};
 
+      int resultIndex = 0;
       if (hasContacts) {
-        contacts = await _contactsService.getContactsWithPhonesCount();
-        // Collect phone numbers from contacts
-        final contactNumbers = await _contactsService.extractPhoneNumbers();
-        phoneNumbers.addAll(contactNumbers);
+        final result = results[resultIndex++];
+        contacts = result.count;
+        phoneNumbers.addAll(result.phoneNumbers);
       }
-
       if (hasSms) {
-        // Show total count (no timestamp filter for display)
-        sms = await _smsService.getSmsCount();
-        // Collect phone numbers from SMS
-        final smsNumbers = await _smsService.extractPhoneNumbers();
-        phoneNumbers.addAll(smsNumbers);
+        final result = results[resultIndex++];
+        sms = result.count;
+        phoneNumbers.addAll(result.phoneNumbers);
       }
-
       if (hasCallLog) {
-        // Show total count (no timestamp filter for display)
-        calls = await _callLogService.getCallLogCount();
-        // Collect phone numbers from calls
-        final callNumbers = await _callLogService.extractPhoneNumbers();
-        phoneNumbers.addAll(callNumbers);
+        final result = results[resultIndex++];
+        calls = result.count;
+        phoneNumbers.addAll(result.phoneNumbers);
       }
 
       // Update cache for server endpoint

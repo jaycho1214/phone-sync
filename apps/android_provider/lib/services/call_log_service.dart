@@ -9,6 +9,17 @@ class CallLogService {
     return entries.length;
   }
 
+  /// Get count and phone numbers in a single query (optimization for UI)
+  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({int? sinceTimestamp}) async {
+    final entries = await _getEntries(sinceTimestamp: sinceTimestamp);
+    final phoneNumbers = entries
+        .map((e) => e.number)
+        .where((n) => n != null)
+        .cast<String>()
+        .toList();
+    return (count: entries.length, phoneNumbers: phoneNumbers);
+  }
+
   /// Extract call log entries with date filtering
   Stream<List<CallLogEntry>> extractCallLogs({
     int? sinceTimestamp,

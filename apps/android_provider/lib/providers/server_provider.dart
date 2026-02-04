@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../services/call_log_service.dart';
@@ -13,14 +15,16 @@ import '../services/sync_storage_service.dart';
 class ServerState {
   final bool isRunning;
   final int port;
+  final String? localIp;
   final String? error;
 
-  const ServerState({this.isRunning = false, this.port = 0, this.error});
+  const ServerState({this.isRunning = false, this.port = 0, this.localIp, this.error});
 
-  ServerState copyWith({bool? isRunning, int? port, String? error}) {
+  ServerState copyWith({bool? isRunning, int? port, String? localIp, String? error}) {
     return ServerState(
       isRunning: isRunning ?? this.isRunning,
       port: port ?? this.port,
+      localIp: localIp ?? this.localIp,
       error: error,
     );
   }
@@ -100,15 +104,49 @@ class ServerNotifier extends Notifier<ServerState> {
       );
 
       final actualPort = _server.port;
+      final localIp = await _getLocalIpAddress();
 
       // Advertise via mDNS
       final deviceName = await _discoveryService.getDeviceName();
       await _discoveryService.advertise(deviceName: deviceName, port: actualPort);
 
-      state = ServerState(isRunning: true, port: actualPort);
+      state = ServerState(isRunning: true, port: actualPort, localIp: localIp);
     } catch (e) {
       state = state.copyWith(error: e.toString());
     }
+  }
+
+  /// Get the local WiFi IP address
+  Future<String?> _getLocalIpAddress() async {
+    try {
+      final interfaces = await NetworkInterface.list(
+        type: InternetAddressType.IPv4,
+        includeLoopback: false,
+      );
+      for (final interface in interfaces) {
+        // Prefer wlan/wifi interfaces
+        if (interface.name.toLowerCase().contains('wlan') ||
+            interface.name.toLowerCase().contains('wifi') ||
+            interface.name.toLowerCase().contains('en')) {
+          for (final addr in interface.addresses) {
+            if (!addr.isLoopback) {
+              return addr.address;
+            }
+          }
+        }
+      }
+      // Fall back to first non-loopback address
+      for (final interface in interfaces) {
+        for (final addr in interface.addresses) {
+          if (!addr.isLoopback) {
+            return addr.address;
+          }
+        }
+      }
+    } catch (_) {
+      // Ignore errors
+    }
+    return null;
   }
 
   /// Stop the HTTP server and mDNS advertisement

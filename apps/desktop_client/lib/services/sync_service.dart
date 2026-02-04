@@ -5,25 +5,42 @@ import 'package:dio/io.dart';
 
 /// Service for communicating with the PhoneSync Android server.
 class SyncService {
-  final Dio _dio;
-  final String baseUrl;
+  Dio _dio;
+  String _currentBaseUrl;
 
-  SyncService({required this.baseUrl, String? sessionToken})
-    : _dio = Dio(
-        BaseOptions(
-          baseUrl: baseUrl,
-          connectTimeout: const Duration(seconds: 10),
-          receiveTimeout: const Duration(minutes: 5),
-          headers: sessionToken != null ? {'Authorization': 'Bearer $sessionToken'} : null,
-        ),
-      ) {
+  SyncService({required String baseUrl, String? sessionToken})
+    : _currentBaseUrl = baseUrl,
+      _dio = _createDio(baseUrl, sessionToken);
+
+  static Dio _createDio(String baseUrl, String? sessionToken) {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: baseUrl,
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(minutes: 5),
+        headers: sessionToken != null ? {'Authorization': 'Bearer $sessionToken'} : null,
+      ),
+    );
     // Trust self-signed certificate from Android server
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
+    (dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
       final client = HttpClient();
       client.badCertificateCallback = (cert, host, port) => true;
       return client;
     };
+    return dio;
   }
+
+  /// Switch to a different base URL (for fallback)
+  void switchBaseUrl(String newBaseUrl) {
+    final token = _dio.options.headers['Authorization'] as String?;
+    final sessionToken = token?.replaceFirst('Bearer ', '');
+    _dio.close();
+    _currentBaseUrl = newBaseUrl;
+    _dio = _createDio(newBaseUrl, sessionToken);
+  }
+
+  /// Get the current base URL
+  String get currentBaseUrl => _currentBaseUrl;
 
   /// Update the session token (after successful pairing).
   void setSessionToken(String token) {

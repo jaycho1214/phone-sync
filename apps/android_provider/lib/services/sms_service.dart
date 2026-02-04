@@ -10,6 +10,17 @@ class SmsService {
     return messages.length;
   }
 
+  /// Get count and phone numbers in a single query (optimization for UI)
+  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({int? sinceTimestamp}) async {
+    final messages = await _getMessages(sinceTimestamp: sinceTimestamp);
+    final phoneNumbers = messages
+        .map((m) => m.address)
+        .where((addr) => addr != null)
+        .cast<String>()
+        .toList();
+    return (count: messages.length, phoneNumbers: phoneNumbers);
+  }
+
   /// Extract SMS messages with timestamp filtering
   Stream<List<SmsMessage>> extractSms({
     int? sinceTimestamp,

@@ -171,51 +171,78 @@ class SessionNotifier extends Notifier<SessionState> {
   }
 
   /// Pair with a device using a PIN.
+  /// Tries all available addresses (IPv4/IPv6) with fallback on connection failure.
   Future<bool> pair(Device device, String pin) async {
     state = state.copyWith(isLoading: true, error: null);
 
+    // Get computer name as client identifier
+    String clientName;
     try {
-      // Create sync service for pairing
-      final syncService = SyncService(baseUrl: device.baseUrl);
-
-      // Get computer name as client identifier
-      String clientName;
-      try {
-        clientName = Platform.localHostname;
-      } catch (_) {
-        clientName = 'Desktop';
-      }
-
-      // Attempt to pair
-      final token = await syncService.pair(pin, clientName: clientName);
-
-      // Save session to secure storage
-      await _storage.saveSession(
-        token: token,
-        deviceName: device.name,
-        deviceHost: device.host,
-        devicePort: device.port,
-      );
-
-      _syncService = syncService;
-
-      state = SessionState(
-        token: token,
-        device: device,
-        isPaired: true,
-        isLoading: false,
-        syncService: _syncService,
-        connectionStatus: ConnectionStatus.connected,
-      );
-
-      // Start health check for ongoing connection monitoring
-      _startHealthCheck();
-
-      return true;
-    } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString().replaceAll('Exception: ', ''));
-      return false;
+      clientName = Platform.localHostname;
+    } catch (_) {
+      clientName = 'Desktop';
     }
+
+    // Get all possible URLs to try
+    final urlsToTry = device.allBaseUrls;
+    String? lastError;
+    String? successfulHost;
+
+    // Try each address until one works
+    for (final baseUrl in urlsToTry) {
+      try {
+        final syncService = SyncService(baseUrl: baseUrl);
+
+        // Attempt to pair
+        final token = await syncService.pair(pin, clientName: clientName);
+
+        // Success - extract host from URL for storage
+        successfulHost = baseUrl.replaceAll('https://', '').split(':').first;
+        if (successfulHost.startsWith('[')) {
+          successfulHost = successfulHost.substring(1, successfulHost.length - 1);
+        }
+
+        // Save session to secure storage
+        await _storage.saveSession(
+          token: token,
+          deviceName: device.name,
+          deviceHost: successfulHost,
+          devicePort: device.port,
+        );
+
+        _syncService = syncService;
+
+        state = SessionState(
+          token: token,
+          device: Device(
+            name: device.name,
+            host: successfulHost,
+            port: device.port,
+            allAddresses: device.allAddresses,
+          ),
+          isPaired: true,
+          isLoading: false,
+          syncService: _syncService,
+          connectionStatus: ConnectionStatus.connected,
+        );
+
+        // Start health check for ongoing connection monitoring
+        _startHealthCheck();
+
+        return true;
+      } catch (e) {
+        lastError = e.toString().replaceAll('Exception: ', '');
+        // If it's an auth error (wrong PIN), don't try other addresses
+        if (lastError.contains('Invalid') || lastError.contains('expired PIN')) {
+          break;
+        }
+        // Otherwise try next address
+        continue;
+      }
+    }
+
+    state = state.copyWith(isLoading: false, error: lastError ?? 'Cannot connect to device');
+    return false;
   }
 
   /// Unpair from the current device.
