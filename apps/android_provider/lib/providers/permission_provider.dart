@@ -18,6 +18,7 @@ class PermissionState {
   });
 
   bool get hasAnyGranted => contacts.isGranted || sms.isGranted || callLog.isGranted;
+  bool get hasAllGranted => contacts.isGranted && sms.isGranted && callLog.isGranted;
 
   PermissionState copyWith({
     PermissionStatus? contacts,

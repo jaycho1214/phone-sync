@@ -24,6 +24,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(permissionProvider.notifier).checkPermissions();
+      final permissions = ref.read(permissionProvider);
+
+      // Auto-request permissions on first load if none are granted
+      if (!permissions.hasAnyGranted) {
+        await ref.read(permissionProvider.notifier).requestAllPermissions();
+      }
+
       // Auto-start server by default (safe to call if already running)
       _autoStartServerIfReady();
     });
@@ -119,11 +126,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ),
                     ],
 
-                    // Permissions request
-                    if (!permissions.hasAnyGranted && !permissions.isLoading) ...[
-                      const SizedBox(height: 20),
-                      _buildPermissionsRequest(),
-                    ],
 
                     const SizedBox(height: 24),
                   ],
@@ -177,11 +179,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       ),
                     ),
                     const SizedBox(width: 6),
-                    Text(
-                      server.isRunning ? 'Active on port ${server.port}' : 'Offline',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: server.isRunning ? AppColors.accent : AppColors.textMuted,
+                    Flexible(
+                      child: Text(
+                        server.isRunning
+                            ? 'Active${server.localIp != null ? ' • ${server.localIp}:${server.port}' : ' on port ${server.port}'}'
+                            : 'Offline',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: server.isRunning ? AppColors.accent : AppColors.textMuted,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ],
@@ -382,19 +389,83 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
   }
 
   Widget _buildPermissionsCard(PermissionState permissions) {
+    final needsPermissions = !permissions.hasAllGranted;
+    final hasSomeDenied =
+        permissions.contacts.isPermanentlyDenied ||
+        permissions.sms.isPermanentlyDenied ||
+        permissions.callLog.isPermanentlyDenied;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(
+          color: needsPermissions ? AppColors.warning.withValues(alpha: 0.4) : AppColors.border,
+        ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          Expanded(child: _buildPermissionItem('Contacts', permissions.contacts)),
-          Container(width: 1, height: 60, color: AppColors.border),
-          Expanded(child: _buildPermissionItem('SMS', permissions.sms)),
-          Container(width: 1, height: 60, color: AppColors.border),
-          Expanded(child: _buildPermissionItem('Calls', permissions.callLog)),
+          // Permission items row
+          Row(
+            children: [
+              Expanded(child: _buildPermissionItem('Contacts', permissions.contacts)),
+              Container(width: 1, height: 60, color: AppColors.border),
+              Expanded(child: _buildPermissionItem('SMS', permissions.sms)),
+              Container(width: 1, height: 60, color: AppColors.border),
+              Expanded(child: _buildPermissionItem('Calls', permissions.callLog)),
+            ],
+          ),
+          // Action row when permissions needed
+          if (needsPermissions && !permissions.isLoading) ...[
+            Container(height: 1, color: AppColors.border),
+            GestureDetector(
+              onTap: () async {
+                if (hasSomeDenied) {
+                  ref.read(permissionProvider.notifier).openSettings();
+                } else {
+                  await ref.read(permissionProvider.notifier).requestAllPermissions();
+                  final newPerms = ref.read(permissionProvider);
+                  await ref
+                      .read(extractionProvider.notifier)
+                      .refreshCounts(
+                        hasContacts: newPerms.contacts.isGranted,
+                        hasSms: newPerms.sms.isGranted,
+                        hasCallLog: newPerms.callLog.isGranted,
+                      );
+                }
+              },
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.warningLight,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(11),
+                    bottomRight: Radius.circular(11),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      hasSomeDenied ? Icons.settings : Icons.touch_app,
+                      size: 16,
+                      color: AppColors.warning,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      hasSomeDenied ? 'Open Settings to Grant' : 'Tap to Grant Permissions',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.warning,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -575,67 +646,4 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildPermissionsRequest() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
-      ),
-      child: Column(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: AppColors.surfaceAlt,
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: const Icon(Icons.lock_outline, color: AppColors.textMuted, size: 28),
-          ),
-          const SizedBox(height: 16),
-          const Text(
-            'Permissions Required',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Grant access to export your phone data',
-            style: TextStyle(fontSize: 13, color: AppColors.textSecondary),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          GestureDetector(
-            onTap: () async {
-              await ref.read(permissionProvider.notifier).requestAllPermissions();
-              final newPerms = ref.read(permissionProvider);
-              await ref
-                  .read(extractionProvider.notifier)
-                  .refreshCounts(
-                    hasContacts: newPerms.contacts.isGranted,
-                    hasSms: newPerms.sms.isGranted,
-                    hasCallLog: newPerms.callLog.isGranted,
-                  );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.textPrimary,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Text(
-                'Grant Permissions',
-                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
