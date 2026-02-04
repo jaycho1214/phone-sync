@@ -8,19 +8,21 @@ import '../providers/permission_provider.dart';
 import '../providers/server_provider.dart';
 import '../providers/sync_state_provider.dart';
 
-// Industrial color palette
+// Professional light color palette
 class _Colors {
-  static const background = Color(0xFF0A0A0A);
-  static const surface = Color(0xFF111111);
-  static const border = Color(0xFF222222);
-  static const borderLight = Color(0xFF333333);
-  static const textPrimary = Color(0xFFFFFFFF);
-  static const textSecondary = Color(0xFF888888);
-  static const textMuted = Color(0xFF555555);
-  static const accent = Color(0xFF00FF88);
-  static const accentDim = Color(0xFF00AA5C);
-  static const error = Color(0xFFFF3B3B);
-  static const warning = Color(0xFFFFAA00);
+  static const background = Color(0xFFF8F9FA);
+  static const surface = Color(0xFFFFFFFF);
+  static const surfaceAlt = Color(0xFFF1F3F4);
+  static const border = Color(0xFFE5E7EB);
+  static const textPrimary = Color(0xFF111827);
+  static const textSecondary = Color(0xFF6B7280);
+  static const textMuted = Color(0xFF9CA3AF);
+  static const accent = Color(0xFF10B981);
+  static const accentLight = Color(0xFFD1FAE5);
+  static const error = Color(0xFFEF4444);
+  static const errorLight = Color(0xFFFEE2E2);
+  static const warning = Color(0xFFF59E0B);
+  static const warningLight = Color(0xFFFEF3C7);
 }
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -31,22 +33,18 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver {
   bool _hasAutoStarted = false;
-  late AnimationController _pulseController;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _pulseController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1500),
-    )..repeat(reverse: true);
 
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       await ref.read(permissionProvider.notifier).checkPermissions();
       ref.read(syncStateProvider.notifier).loadSyncState();
+      // Auto-start server by default
       _autoStartServerIfReady();
     });
   }
@@ -54,7 +52,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _pulseController.dispose();
     super.dispose();
   }
 
@@ -73,10 +70,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final permissions = ref.read(permissionProvider);
     final server = ref.read(serverProvider);
 
-    if (permissions.hasAnyGranted && !server.isRunning && !_hasAutoStarted) {
+    // Start server if permissions granted (or even without - server will just serve empty data)
+    if (!server.isRunning && !_hasAutoStarted) {
       _hasAutoStarted = true;
       ref.read(serverProvider.notifier).startServer();
       ref.read(pairingProvider.notifier).generateNewPin();
+
+      // Refresh counts if permissions granted
+      if (permissions.hasAnyGranted) {
+        ref.read(extractionProvider.notifier).refreshCounts(
+              hasContacts: permissions.contacts.isGranted,
+              hasSms: permissions.sms.isGranted,
+              hasCallLog: permissions.callLog.isGranted,
+            );
+      }
     }
   }
 
@@ -84,6 +91,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   Widget build(BuildContext context) {
     final permissions = ref.watch(permissionProvider);
     final extraction = ref.watch(extractionProvider);
+    final syncState = ref.watch(syncStateProvider);
     final server = ref.watch(serverProvider);
     final pairing = ref.watch(pairingProvider);
 
@@ -92,43 +100,65 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
       body: SafeArea(
         child: Column(
           children: [
-            // Header
+            // Professional Header
             _buildHeader(server),
 
             // Main content
             Expanded(
               child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // PIN Section (hero element)
-                    if (server.isRunning) _buildPinSection(pairing),
+                    // PIN Section
+                    if (server.isRunning) ...[
+                      _buildPinSection(pairing),
+                      const SizedBox(height: 20),
+                    ],
 
-                    // Status Grid
-                    _buildStatusGrid(permissions, extraction, server),
+                    // Permissions 1x3 card
+                    _buildSectionLabel('PERMISSIONS'),
+                    const SizedBox(height: 8),
+                    _buildPermissionsCard(permissions),
+
+                    const SizedBox(height: 20),
+
+                    // Available Data 1xn cards
+                    _buildSectionLabel('AVAILABLE DATA'),
+                    const SizedBox(height: 8),
+                    _buildDataCards(permissions, extraction),
+
+                    const SizedBox(height: 20),
+
+                    // Sync Status 1xn cards
+                    _buildSectionLabel('LAST SYNCED'),
+                    const SizedBox(height: 8),
+                    _buildSyncCards(syncState),
 
                     // Error display
                     if (server.error != null ||
                         extraction.error != null ||
-                        permissions.error != null)
-                      _buildErrorSection(
+                        permissions.error != null) ...[
+                      const SizedBox(height: 20),
+                      _buildErrorBanner(
                         server.error ??
                             extraction.error ??
                             permissions.error ??
                             '',
                       ),
+                    ],
 
                     // Permissions request
-                    if (!permissions.hasAnyGranted && !permissions.isLoading)
+                    if (!permissions.hasAnyGranted && !permissions.isLoading) ...[
+                      const SizedBox(height: 20),
                       _buildPermissionsRequest(),
+                    ],
 
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ),
-
-            // Bottom action bar
-            _buildBottomBar(server, permissions, extraction),
           ],
         ),
       ),
@@ -139,73 +169,106 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: const BoxDecoration(
+        color: _Colors.surface,
         border: Border(
           bottom: BorderSide(color: _Colors.border, width: 1),
         ),
       ),
       child: Row(
         children: [
-          // Status indicator
-          AnimatedBuilder(
-            animation: _pulseController,
-            builder: (context, child) {
-              return Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: server.isRunning
-                      ? Color.lerp(
-                          _Colors.accent,
-                          _Colors.accentDim,
-                          _pulseController.value,
-                        )
-                      : _Colors.textMuted,
-                  boxShadow: server.isRunning
-                      ? [
-                          BoxShadow(
-                            color: _Colors.accent
-                                .withValues(alpha: 0.5 - _pulseController.value * 0.3),
-                            blurRadius: 8,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-              );
-            },
+          // Logo/Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: _Colors.textPrimary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(
+              Icons.sync_alt,
+              color: Colors.white,
+              size: 22,
+            ),
           ),
           const SizedBox(width: 12),
-          // Title
-          const Text(
-            'PHONESYNC',
-            style: TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 4,
-              color: _Colors.textPrimary,
+          // Title and status
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'PhoneSync',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: _Colors.textPrimary,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  children: [
+                    Container(
+                      width: 6,
+                      height: 6,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: server.isRunning ? _Colors.accent : _Colors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      server.isRunning ? 'Active on port ${server.port}' : 'Offline',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: server.isRunning ? _Colors.accent : _Colors.textMuted,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
-          const Spacer(),
-          // Port badge
-          if (server.isRunning)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          // Server toggle
+          GestureDetector(
+            onTap: () {
+              if (server.isRunning) {
+                ref.read(serverProvider.notifier).stopServer();
+                ref.read(pairingProvider.notifier).reset();
+              } else {
+                ref.read(serverProvider.notifier).startServer();
+                ref.read(pairingProvider.notifier).generateNewPin();
+              }
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                border: Border.all(color: _Colors.borderLight),
-                borderRadius: BorderRadius.circular(2),
+                color: server.isRunning ? _Colors.surfaceAlt : _Colors.textPrimary,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                ':${server.port}',
-                style: const TextStyle(
-                  fontFamily: 'RobotoMono',
-                  fontSize: 11,
-                  color: _Colors.textSecondary,
+                server.isRunning ? 'Stop' : 'Start',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: server.isRunning ? _Colors.textSecondary : Colors.white,
                 ),
               ),
             ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSectionLabel(String label) {
+    return Text(
+      label,
+      style: const TextStyle(
+        fontSize: 11,
+        fontWeight: FontWeight.w600,
+        color: _Colors.textMuted,
+        letterSpacing: 1,
       ),
     );
   }
@@ -214,38 +277,42 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     if (pairing.isPaired) {
       return Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 48),
-        decoration: const BoxDecoration(
-          border: Border(
-            bottom: BorderSide(color: _Colors.border, width: 1),
-          ),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: _Colors.accentLight,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _Colors.accent.withValues(alpha: 0.3)),
         ),
         child: Column(
           children: [
-            Icon(
-              Icons.link,
-              size: 32,
-              color: _Colors.accent,
-            ),
-            const SizedBox(height: 16),
-            const Text(
-              'PAIRED',
-              style: TextStyle(
-                fontFamily: 'RobotoMono',
-                fontSize: 24,
-                fontWeight: FontWeight.w300,
-                letterSpacing: 8,
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
                 color: _Colors.accent,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: const Icon(
+                Icons.check,
+                color: Colors.white,
+                size: 28,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             const Text(
-              'Device connected',
+              'Connected',
               style: TextStyle(
-                fontFamily: 'RobotoMono',
-                fontSize: 11,
-                color: _Colors.textMuted,
-                letterSpacing: 1,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+                color: _Colors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text(
+              'Desktop client is paired',
+              style: TextStyle(
+                fontSize: 13,
+                color: _Colors.textSecondary,
               ),
             ),
           ],
@@ -255,229 +322,251 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 40),
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: _Colors.border, width: 1),
-        ),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Colors.border),
       ),
       child: Column(
         children: [
-          // Label
           const Text(
-            'PAIRING CODE',
+            'Pairing Code',
             style: TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 3,
-              color: _Colors.textMuted,
+              fontSize: 13,
+              color: _Colors.textSecondary,
             ),
           ),
-          const SizedBox(height: 20),
-          // Large PIN display - terminal style
-          Text(
-            _formatPin(pairing.pin ?? '------'),
-            style: const TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 48,
-              fontWeight: FontWeight.w300,
-              letterSpacing: 16,
-              color: _Colors.accent,
-              height: 1,
-            ),
+          const SizedBox(height: 12),
+          // Large PIN display
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: _buildPinDigits(pairing.pin ?? '------'),
           ),
-          const SizedBox(height: 20),
-          // Timer
+          const SizedBox(height: 16),
+          // Timer and refresh
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color:
-                      pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
+              Icon(
+                Icons.schedule,
+                size: 14,
+                color: pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                pairing.isPinExpired ? 'Expired' : pairing.formattedTimeRemaining,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                pairing.isPinExpired
-                    ? 'EXPIRED'
-                    : pairing.formattedTimeRemaining,
-                style: TextStyle(
-                  fontFamily: 'RobotoMono',
-                  fontSize: 11,
-                  letterSpacing: 2,
-                  color:
-                      pairing.isPinExpired ? _Colors.error : _Colors.textMuted,
+              const SizedBox(width: 16),
+              GestureDetector(
+                onTap: () => ref.read(pairingProvider.notifier).generateNewPin(),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.refresh,
+                      size: 14,
+                      color: _Colors.accent,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'New code',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: _Colors.accent,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          // Refresh button
-          GestureDetector(
-            onTap: () => ref.read(pairingProvider.notifier).generateNewPin(),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                border: Border.all(color: _Colors.borderLight),
-                borderRadius: BorderRadius.circular(2),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.refresh, size: 14, color: _Colors.textSecondary),
-                  SizedBox(width: 8),
-                  Text(
-                    'NEW CODE',
-                    style: TextStyle(
-                      fontFamily: 'RobotoMono',
-                      fontSize: 10,
-                      letterSpacing: 2,
-                      color: _Colors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
   }
 
-  String _formatPin(String pin) {
-    if (pin.length != 6) return pin;
-    return '${pin.substring(0, 3)} ${pin.substring(3)}';
-  }
-
-  Widget _buildStatusGrid(
-    PermissionState permissions,
-    ExtractionState extraction,
-    ServerState server,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Section label
-          const Text(
-            'DATA SOURCES',
-            style: TextStyle(
+  List<Widget> _buildPinDigits(String pin) {
+    return pin.split('').map((digit) {
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        width: 44,
+        height: 56,
+        decoration: BoxDecoration(
+          color: _Colors.surfaceAlt,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: _Colors.border),
+        ),
+        child: Center(
+          child: Text(
+            digit,
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.w600,
+              color: _Colors.textPrimary,
               fontFamily: 'RobotoMono',
-              fontSize: 10,
-              fontWeight: FontWeight.w500,
-              letterSpacing: 2,
-              color: _Colors.textMuted,
             ),
           ),
-          const SizedBox(height: 16),
+        ),
+      );
+    }).toList();
+  }
 
-          // Data rows
-          _buildDataRow(
-            'Contacts',
-            permissions.contacts.isGranted ? extraction.contactCount : null,
-            permissions.contacts,
-          ),
-          _buildDivider(),
-          _buildDataRow(
-            'SMS',
-            permissions.sms.isGranted ? extraction.smsCount : null,
-            permissions.sms,
-          ),
-          _buildDivider(),
-          _buildDataRow(
-            'Call Log',
-            permissions.callLog.isGranted ? extraction.callLogCount : null,
-            permissions.callLog,
-          ),
-          _buildDivider(),
-
-          // Total row
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Row(
-              children: [
-                const Text(
-                  'TOTAL',
-                  style: TextStyle(
-                    fontFamily: 'RobotoMono',
-                    fontSize: 11,
-                    letterSpacing: 2,
-                    color: _Colors.textSecondary,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  _formatNumber(extraction.totalCount),
-                  style: const TextStyle(
-                    fontFamily: 'RobotoMono',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
-                    color: _Colors.textPrimary,
-                  ),
-                ),
-              ],
-            ),
-          ),
+  Widget _buildPermissionsCard(PermissionState permissions) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Colors.border),
+      ),
+      child: Row(
+        children: [
+          Expanded(child: _buildPermissionItem('Contacts', permissions.contacts)),
+          Container(width: 1, height: 60, color: _Colors.border),
+          Expanded(child: _buildPermissionItem('SMS', permissions.sms)),
+          Container(width: 1, height: 60, color: _Colors.border),
+          Expanded(child: _buildPermissionItem('Calls', permissions.callLog)),
         ],
       ),
     );
   }
 
-  Widget _buildDataRow(String label, int? count, PermissionStatus status) {
+  Widget _buildPermissionItem(String label, PermissionStatus status) {
     final isGranted = status.isGranted;
     final isDenied = status.isPermanentlyDenied;
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
+    Color iconColor;
+    Color bgColor;
+    IconData icon;
+
+    if (isGranted) {
+      iconColor = _Colors.accent;
+      bgColor = _Colors.accentLight;
+      icon = Icons.check_circle;
+    } else if (isDenied) {
+      iconColor = _Colors.error;
+      bgColor = _Colors.errorLight;
+      icon = Icons.cancel;
+    } else {
+      iconColor = _Colors.warning;
+      bgColor = _Colors.warningLight;
+      icon = Icons.warning_rounded;
+    }
+
+    return GestureDetector(
+      onTap: !isGranted
+          ? () => ref.read(permissionProvider.notifier).openSettings()
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        child: Column(
+          children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(icon, size: 18, color: iconColor),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: _Colors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDataCards(PermissionState permissions, ExtractionState extraction) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildDataCard(
+            'Contacts',
+            Icons.person_outline,
+            permissions.contacts.isGranted ? extraction.contactCount : null,
+            !permissions.contacts.isGranted,
+            extraction.isLoading,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildDataCard(
+            'SMS',
+            Icons.message_outlined,
+            permissions.sms.isGranted ? extraction.smsCount : null,
+            !permissions.sms.isGranted,
+            extraction.isLoading,
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildDataCard(
+            'Calls',
+            Icons.phone_outlined,
+            permissions.callLog.isGranted ? extraction.callLogCount : null,
+            !permissions.callLog.isGranted,
+            extraction.isLoading,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDataCard(
+    String label,
+    IconData icon,
+    int? count,
+    bool noPermission,
+    bool isLoading,
+  ) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Status dot
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isGranted
-                  ? _Colors.accent
-                  : isDenied
-                      ? _Colors.error
-                      : _Colors.warning,
+          Icon(icon, size: 20, color: _Colors.textMuted),
+          const SizedBox(height: 12),
+          if (isLoading && !noPermission)
+            const SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: _Colors.textMuted,
+              ),
+            )
+          else
+            Text(
+              noPermission ? '—' : _formatNumber(count),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.w600,
+                color: _Colors.textPrimary,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          // Label
+          const SizedBox(height: 4),
           Text(
-            label.toUpperCase(),
+            label,
             style: const TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 11,
-              letterSpacing: 1,
+              fontSize: 12,
               color: _Colors.textSecondary,
-            ),
-          ),
-          const Spacer(),
-          // Count or status
-          Text(
-            isGranted
-                ? _formatNumber(count)
-                : isDenied
-                    ? 'DENIED'
-                    : 'PENDING',
-            style: TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 13,
-              fontWeight: isGranted ? FontWeight.w500 : FontWeight.w400,
-              color: isGranted
-                  ? _Colors.textPrimary
-                  : isDenied
-                      ? _Colors.error
-                      : _Colors.textMuted,
             ),
           ),
         ],
@@ -485,43 +574,95 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     );
   }
 
-  Widget _buildDivider() {
+  Widget _buildSyncCards(SyncState syncState) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildSyncCard(
+            'Contacts',
+            syncState.formatLastSync(syncState.contactsLastSync),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildSyncCard(
+            'SMS',
+            syncState.formatLastSync(syncState.smsLastSync),
+          ),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: _buildSyncCard(
+            'Calls',
+            syncState.formatLastSync(syncState.callLogLastSync),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSyncCard(String label, String time) {
+    final isNever = time == 'Never';
+
     return Container(
-      height: 1,
-      color: _Colors.border,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Colors.border),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 11,
+              color: _Colors.textMuted,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            time,
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: isNever ? _Colors.textMuted : _Colors.textPrimary,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   String _formatNumber(int? number) {
-    if (number == null) return '---';
+    if (number == null) return '—';
+    if (number >= 1000000) {
+      return '${(number / 1000000).toStringAsFixed(1)}M';
+    }
     if (number >= 1000) {
       return '${(number / 1000).toStringAsFixed(1)}K';
     }
     return number.toString();
   }
 
-  Widget _buildErrorSection(String error) {
+  Widget _buildErrorBanner(String error) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
+        color: _Colors.errorLight,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _Colors.error.withValues(alpha: 0.3)),
-        borderRadius: BorderRadius.circular(2),
       ),
       child: Row(
         children: [
-          Container(
-            width: 4,
-            height: 40,
-            color: _Colors.error,
-          ),
-          const SizedBox(width: 12),
+          const Icon(Icons.error_outline, size: 18, color: _Colors.error),
+          const SizedBox(width: 10),
           Expanded(
             child: Text(
               error,
               style: const TextStyle(
-                fontFamily: 'RobotoMono',
-                fontSize: 11,
+                fontSize: 13,
                 color: _Colors.error,
               ),
             ),
@@ -532,43 +673,47 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
   }
 
   Widget _buildPermissionsRequest() {
-    return Padding(
+    return Container(
       padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _Colors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _Colors.border),
+      ),
       child: Column(
         children: [
           Container(
-            width: 48,
-            height: 48,
+            width: 56,
+            height: 56,
             decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _Colors.borderLight),
+              color: _Colors.surfaceAlt,
+              borderRadius: BorderRadius.circular(28),
             ),
             child: const Icon(
               Icons.lock_outline,
               color: _Colors.textMuted,
-              size: 24,
+              size: 28,
             ),
           ),
           const SizedBox(height: 16),
           const Text(
-            'PERMISSIONS REQUIRED',
+            'Permissions Required',
             style: TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 11,
-              letterSpacing: 2,
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: _Colors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Grant access to sync your phone data',
+            style: TextStyle(
+              fontSize: 13,
               color: _Colors.textSecondary,
             ),
+            textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 8),
-          const Text(
-            'Grant access to sync your data',
-            style: TextStyle(
-              fontFamily: 'RobotoMono',
-              fontSize: 12,
-              color: _Colors.textMuted,
-            ),
-          ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           GestureDetector(
             onTap: () async {
               await ref
@@ -580,144 +725,20 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
                     hasSms: newPerms.sms.isGranted,
                     hasCallLog: newPerms.callLog.isGranted,
                   );
-              _hasAutoStarted = false;
-              _autoStartServerIfReady();
             },
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: _Colors.accent,
-                borderRadius: BorderRadius.circular(2),
+                color: _Colors.textPrimary,
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Text(
-                'GRANT ACCESS',
+                'Grant Permissions',
                 style: TextStyle(
-                  fontFamily: 'RobotoMono',
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 2,
-                  color: _Colors.background,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
                 ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBottomBar(
-    ServerState server,
-    PermissionState permissions,
-    ExtractionState extraction,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        border: Border(
-          top: BorderSide(color: _Colors.border, width: 1),
-        ),
-      ),
-      child: Row(
-        children: [
-          // Server toggle
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                if (server.isRunning) {
-                  ref.read(serverProvider.notifier).stopServer();
-                  ref.read(pairingProvider.notifier).reset();
-                } else {
-                  ref.read(serverProvider.notifier).startServer();
-                  ref.read(pairingProvider.notifier).generateNewPin();
-                }
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color:
-                      server.isRunning ? _Colors.surface : _Colors.accent,
-                  border: Border.all(
-                    color: server.isRunning ? _Colors.borderLight : _Colors.accent,
-                  ),
-                  borderRadius: BorderRadius.circular(2),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      server.isRunning ? Icons.stop : Icons.play_arrow,
-                      size: 16,
-                      color: server.isRunning
-                          ? _Colors.textSecondary
-                          : _Colors.background,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      server.isRunning ? 'STOP' : 'START',
-                      style: TextStyle(
-                        fontFamily: 'RobotoMono',
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 2,
-                        color: server.isRunning
-                            ? _Colors.textSecondary
-                            : _Colors.background,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Refresh button
-          GestureDetector(
-            onTap: permissions.hasAnyGranted && !extraction.isLoading
-                ? () => ref.read(extractionProvider.notifier).refreshCounts(
-                      hasContacts: permissions.contacts.isGranted,
-                      hasSms: permissions.sms.isGranted,
-                      hasCallLog: permissions.callLog.isGranted,
-                    )
-                : null,
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border.all(color: _Colors.borderLight),
-                borderRadius: BorderRadius.circular(2),
-              ),
-              child: extraction.isLoading
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 1.5,
-                        color: _Colors.textMuted,
-                      ),
-                    )
-                  : Icon(
-                      Icons.refresh,
-                      size: 16,
-                      color: permissions.hasAnyGranted
-                          ? _Colors.textSecondary
-                          : _Colors.textMuted,
-                    ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // Settings button
-          GestureDetector(
-            onTap: () => ref.read(permissionProvider.notifier).openSettings(),
-            child: Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                border: Border.all(color: _Colors.borderLight),
-                borderRadius: BorderRadius.circular(2),
-              ),
-              child: const Icon(
-                Icons.settings_outlined,
-                size: 16,
-                color: _Colors.textSecondary,
               ),
             ),
           ),
