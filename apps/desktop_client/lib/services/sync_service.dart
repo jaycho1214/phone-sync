@@ -80,32 +80,92 @@ class SyncService {
   }
 
   /// Fetch contacts from the device.
-  /// Full implementation in Plan 02.
+  /// Returns list of contact objects with displayName and phones array.
   Future<List<Map<String, dynamic>>> fetchContacts({
     void Function(int received, int total)? onProgress,
   }) async {
-    // Stub - full implementation in Plan 02
-    return [];
+    try {
+      final response = await _dio.get(
+        '/contacts',
+        onReceiveProgress: onProgress,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final contacts = data['data'] as List<dynamic>?;
+      return contacts?.cast<Map<String, dynamic>>() ?? [];
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Session expired - please pair again');
+      }
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout while fetching contacts');
+      }
+      throw Exception('Failed to fetch contacts: ${e.message}');
+    }
   }
 
   /// Fetch SMS messages from the device.
-  /// Full implementation in Plan 02.
+  /// Optionally specify [since] timestamp for incremental sync.
   Future<List<Map<String, dynamic>>> fetchSms({
     int? since,
     void Function(int received, int total)? onProgress,
   }) async {
-    // Stub - full implementation in Plan 02
-    return [];
+    try {
+      final queryParams = <String, dynamic>{};
+      if (since != null) {
+        queryParams['since'] = since.toString();
+      }
+
+      final response = await _dio.get(
+        '/sms',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        onReceiveProgress: onProgress,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final messages = data['data'] as List<dynamic>?;
+      return messages?.cast<Map<String, dynamic>>() ?? [];
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Session expired - please pair again');
+      }
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout while fetching SMS');
+      }
+      throw Exception('Failed to fetch SMS: ${e.message}');
+    }
   }
 
   /// Fetch call logs from the device.
-  /// Full implementation in Plan 02.
+  /// Optionally specify [since] timestamp for incremental sync.
   Future<List<Map<String, dynamic>>> fetchCalls({
     int? since,
     void Function(int received, int total)? onProgress,
   }) async {
-    // Stub - full implementation in Plan 02
-    return [];
+    try {
+      final queryParams = <String, dynamic>{};
+      if (since != null) {
+        queryParams['since'] = since.toString();
+      }
+
+      final response = await _dio.get(
+        '/calls',
+        queryParameters: queryParams.isNotEmpty ? queryParams : null,
+        onReceiveProgress: onProgress,
+      );
+
+      final data = response.data as Map<String, dynamic>;
+      final calls = data['data'] as List<dynamic>?;
+      return calls?.cast<Map<String, dynamic>>() ?? [];
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 401) {
+        throw Exception('Session expired - please pair again');
+      }
+      if (e.type == DioExceptionType.connectionTimeout) {
+        throw Exception('Connection timeout while fetching calls');
+      }
+      throw Exception('Failed to fetch calls: ${e.message}');
+    }
   }
 
   /// Dispose the Dio client.
