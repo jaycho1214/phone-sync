@@ -1,0 +1,207 @@
+# Release Workflow for PhoneSync
+#
+# Triggers on: git tag push matching v*.*.*
+# Example: git tag v1.0.0 && git push origin v1.0.0
+#
+# Required GitHub Secrets:
+#   KEYSTORE_BASE64 - Base64-encoded .jks keystore (base64 -i upload-keystore.jks)
+#   KEYSTORE_PASSWORD - Keystore password
+#   KEY_PASSWORD - Key password (often same as keystore password)
+#   KEY_ALIAS - Key alias (e.g., "upload")
+#
+# Outputs:
+#   - android_provider-{version}.apk (signed)
+#   - desktop_client-macos-{version}.zip
+#   - desktop_client-windows-{version}.zip
+#   - desktop_client-linux-{version}.tar.gz
+#   - SHA256SUMS.txt
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+permissions:
+  contents: write
+
+env:
+  FLUTTER_VERSION: stable
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Decode Keystore
+        working-directory: apps/android_provider/android
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/upload-keystore.jks
+
+      - name: Create key.properties
+        working-directory: apps/android_provider/android
+        run: |
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" > key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> key.properties
+          echo "storeFile=upload-keystore.jks" >> key.properties
+
+      - name: Build APK
+        working-directory: apps/android_provider
+        run: flutter build apk --release --build-name=${{ steps.version.outputs.VERSION }}
+
+      - name: Rename APK
+        run: |
+          mv apps/android_provider/build/app/outputs/flutter-apk/app-release.apk \
+             android_provider-${{ steps.version.outputs.VERSION }}.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: android_provider-${{ steps.version.outputs.VERSION }}.apk
+
+  build-macos:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Build macOS
+        working-directory: apps/desktop_client
+        run: flutter build macos --release --build-name=${{ steps.version.outputs.VERSION }}
+
+      - name: Create ZIP
+        run: |
+          cd apps/desktop_client/build/macos/Build/Products/Release
+          zip -r ../../../../../../desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip desktop_client.app
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: macos-app
+          path: apps/desktop_client/desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Build Windows
+        working-directory: apps/desktop_client
+        run: flutter build windows --release --build-name=${{ steps.version.outputs.VERSION }}
+
+      - name: Create ZIP
+        shell: pwsh
+        run: |
+          Compress-Archive -Path "apps/desktop_client/build/windows/x64/runner/Release/*" `
+            -DestinationPath "desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-app
+          path: desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip
+
+  build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libstdc++-12-dev
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: ${{ env.FLUTTER_VERSION }}
+          cache: true
+
+      - name: Build Linux
+        working-directory: apps/desktop_client
+        run: flutter build linux --release --build-name=${{ steps.version.outputs.VERSION }}
+
+      - name: Create tarball
+        run: |
+          cd apps/desktop_client/build/linux/x64/release
+          tar -czvf ../../../../desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz bundle/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux-app
+          path: apps/desktop_client/desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz
+
+  create-release:
+    needs: [build-android, build-macos, build-windows, build-linux]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Generate checksums
+        working-directory: artifacts
+        run: sha256sum * > SHA256SUMS.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/*
+          generate_release_notes: true
+          body: |
+            ## PhoneSync ${{ steps.version.outputs.VERSION }}
+
+            ### Downloads
+
+            | Platform | File |
+            |----------|------|
+            | Android | `android_provider-${{ steps.version.outputs.VERSION }}.apk` |
+            | macOS | `desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip` |
+            | Windows | `desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip` |
+            | Linux | `desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz` |
+
+            ### Verification
+
+            Verify downloads with `sha256sum -c SHA256SUMS.txt`
