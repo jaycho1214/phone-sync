@@ -75,11 +75,12 @@ Plans:
 **Depends on**: Phase 3 (working apps to build)
 **Requirements**: CICD-01, CICD-02, CICD-03, CICD-04, CICD-05, CICD-06, CICD-07, CICD-08, CICD-09, CICD-10, SIGN-01, SIGN-02, SIGN-03, PLAT-04
 **Success Criteria** (what must be TRUE):
-  1. Pushing a v*.*.* tag triggers automated builds for all 4 platforms (Android, macOS, Windows, Linux)
+  1. Pushing a v*.*.* tag triggers automated builds for 3 platforms (Android, Windows, Linux)
   2. All platform builds run in parallel and complete within 30 minutes
-  3. GitHub Release is created with downloadable APK, macOS .app, Windows .exe, and Linux bundle
+  3. GitHub Release is created with downloadable APK, Windows .exe, and Linux bundle
   4. Android APK is signed with release keystore and installable on devices
   5. Each artifact has SHA256 checksum for verification
+  Note: macOS CI removed (requires $99/year Apple Developer certificate) - local build supported
 **Plans**: 2 plans
 
 Plans:

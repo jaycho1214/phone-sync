@@ -39,7 +39,7 @@
 
 - [x] **CICD-01**: Release builds trigger on git tag push (v*.*.* pattern)
 - [x] **CICD-02**: Pipeline builds Android APK
-- [x] **CICD-03**: Pipeline builds macOS app
+- [ ] **CICD-03**: ~~Pipeline builds macOS app~~ (removed - requires $99/year Apple Developer certificate)
 - [x] **CICD-04**: Pipeline builds Windows app
 - [x] **CICD-05**: Pipeline builds Linux app
 - [x] **CICD-06**: All platform builds run in parallel
@@ -121,7 +121,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PLAT-03 | Phase 3 | Complete |
 | CICD-01 | Phase 4 | Complete |
 | CICD-02 | Phase 4 | Complete |
-| CICD-03 | Phase 4 | Complete |
+| CICD-03 | Phase 4 | Removed |
 | CICD-04 | Phase 4 | Complete |
 | CICD-05 | Phase 4 | Complete |
 | CICD-06 | Phase 4 | Complete |
@@ -136,7 +136,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 - v1.0 requirements: 16 total (Complete)
-- v1.1 requirements: 14 total (Complete)
+- v1.1 requirements: 13 total (Complete), 1 removed (CICD-03 macOS CI)
 - Mapped to phases: 30
 - Unmapped: 0
 

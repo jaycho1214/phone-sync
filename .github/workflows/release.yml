@@ -11,10 +11,11 @@
 #
 # Outputs:
 #   - android_provider-{version}.apk (signed)
-#   - desktop_client-macos-{version}.zip
 #   - desktop_client-windows-{version}.zip
 #   - desktop_client-linux-{version}.tar.gz
 #   - SHA256SUMS.txt
+#
+# Note: macOS builds require Apple Developer certificate ($99/year) - not included
 
 name: Release
 
@@ -75,34 +76,6 @@ jobs:
         with:
           name: android-apk
           path: android_provider-${{ steps.version.outputs.VERSION }}.apk
-
-  build-macos:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Get version from tag
-        id: version
-        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
-
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: ${{ env.FLUTTER_VERSION }}
-          cache: true
-
-      - name: Build macOS
-        working-directory: apps/desktop_client
-        run: flutter build macos --release --build-name=${{ steps.version.outputs.VERSION }}
-
-      - name: Create ZIP
-        run: |
-          cd apps/desktop_client/build/macos/Build/Products/Release
-          zip -r ../../../../../../desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip desktop_client.app
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: macos-app
-          path: apps/desktop_client/desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip
 
   build-windows:
     runs-on: windows-latest
@@ -168,7 +141,7 @@ jobs:
           path: apps/desktop_client/desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz
 
   create-release:
-    needs: [build-android, build-macos, build-windows, build-linux]
+    needs: [build-android, build-windows, build-linux]
     runs-on: ubuntu-latest
     steps:
       - name: Get version from tag
@@ -198,10 +171,16 @@ jobs:
             | Platform | File |
             |----------|------|
             | Android | `android_provider-${{ steps.version.outputs.VERSION }}.apk` |
-            | macOS | `desktop_client-macos-${{ steps.version.outputs.VERSION }}.zip` |
             | Windows | `desktop_client-windows-${{ steps.version.outputs.VERSION }}.zip` |
             | Linux | `desktop_client-linux-${{ steps.version.outputs.VERSION }}.tar.gz` |
 
             ### Verification
 
             Verify downloads with `sha256sum -c SHA256SUMS.txt`
+
+            ### macOS
+
+            macOS builds require Apple Developer certificate. Build locally:
+            ```bash
+            cd apps/desktop_client && flutter build macos --release
+            ```

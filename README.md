@@ -71,12 +71,24 @@ PhoneSync creates a **direct, encrypted connection** between your Android phone 
 - **Local Network**: Never leaves your WiFi
 - **No Persistence**: Android app holds no exported data
 
+## Download
+
+Get the latest release from [GitHub Releases](https://github.com/jljm/phone-sync/releases):
+
+| Platform | Download |
+|----------|----------|
+| Android | `android_provider-x.x.x.apk` |
+| Windows | `desktop_client-windows-x.x.x.zip` |
+| Linux | `desktop_client-linux-x.x.x.tar.gz` |
+
+**macOS**: Requires local build (Apple Developer certificate needed for distribution). See [Building from Source](#building-from-source).
+
 ## Quick Start
 
 ### Requirements
 
 - **Android phone** (API 23+ / Android 6.0+) — iOS is not supported
-- macOS or Windows computer
+- Windows or Linux computer (macOS requires local build)
 - Both devices on the same WiFi network
 
 ### Setup
@@ -90,7 +102,7 @@ PhoneSync creates a **direct, encrypted connection** between your Android phone 
 ## Architecture
 
 ```
-jljm-phonesync/
+phone-sync/
 ├── apps/
 │   ├── android_provider/     # Flutter Android app (HTTPS server)
 │   │   ├── lib/
@@ -110,7 +122,7 @@ jljm-phonesync/
 ### Tech Stack
 
 - **Framework**: Flutter 3.x
-- **State**: Riverpod 3.x
+- **State**: Riverpod 2.x
 - **Server**: Shelf (self-signed TLS)
 - **Discovery**: mDNS/DNS-SD via `nsd` package
 - **Export**: `excel` package for .xlsx generation
@@ -119,21 +131,24 @@ jljm-phonesync/
 
 ```bash
 # Clone
-git clone https://github.com/jljm/jljm-phonesync.git
-cd jljm-phonesync
+git clone https://github.com/jljm/phone-sync.git
+cd phone-sync
 
 # Android
 cd apps/android_provider
 flutter pub get
 flutter build apk --release
 
-# Desktop (macOS)
+# Desktop (Windows)
 cd apps/desktop_client
 flutter pub get
-flutter build macos --release
-
-# Desktop (Windows)
 flutter build windows --release
+
+# Desktop (Linux)
+flutter build linux --release
+
+# Desktop (macOS) - requires local build
+flutter build macos --release
 ```
 
 ## FAQ
@@ -153,6 +168,10 @@ Excel (.xlsx) is universally readable, works offline, and lets you sort/filter/s
 **Q: Can I export incrementally?**
 
 Yes. Use the date filter to export only new messages/calls since your last export.
+
+**Q: Why no macOS release?**
+
+Apple requires a $99/year Developer certificate to distribute macOS apps. You can build locally using `flutter build macos --release`.
 
 ---
 
