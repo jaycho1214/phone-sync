@@ -60,11 +60,11 @@ Plans:
   5. Duplicate phone numbers across sources are deduplicated in export
   6. Export can filter to Korean mobile numbers (010 prefix)
   7. Export handles 50,000+ rows without memory issues
-**Plans**: TBD (2-3 plans expected)
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Desktop app discovery and pairing flow
-- [ ] 03-02: Data sync and Excel export with normalization/dedup
+- [ ] 03-01-PLAN.md - Desktop app setup, mDNS discovery, PIN pairing flow with session persistence
+- [ ] 03-02-PLAN.md - Drift database, data sync with progress, phone normalization/dedup, Excel export
 
 ## Progress
 
@@ -75,8 +75,8 @@ Phases execute in numeric order: 1 -> 2 -> 3
 |-------|----------------|--------|-----------|
 | 1. Android Data Provider | 2/2 | Complete | 2026-02-03 |
 | 2. Network Protocol | 2/2 | Complete | 2026-02-03 |
-| 3. Desktop Client & Export | 0/2 | Not started | - |
+| 3. Desktop Client & Export | 0/2 | Planned | - |
 
 ---
 *Roadmap created: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 2 complete*
+*Last updated: 2026-02-04 - Phase 3 planned*
