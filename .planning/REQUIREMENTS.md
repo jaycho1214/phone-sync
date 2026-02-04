@@ -1,11 +1,9 @@
 # Requirements: jljm-phonesync
 
-**Defined:** 2026-02-03
+**Defined:** 2026-02-03, updated 2026-02-04
 **Core Value:** Phone numbers from Android device synced to desktop and exported to Excel on demand, securely over local network
 
-## v1 Requirements
-
-Requirements for initial release. Each maps to roadmap phases.
+## v1.0 Requirements (MVP - Complete)
 
 ### Data Extraction
 
@@ -23,31 +21,63 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Export
 
-- [ ] **EXPO-01**: Desktop app exports synced data to Excel (.xlsx) file
-- [ ] **EXPO-02**: Phone numbers normalized to consistent format
-- [ ] **EXPO-03**: Deduplication removes duplicate phone numbers across sources
-- [ ] **EXPO-04**: Export handles large datasets (50,000+ rows) without memory issues
-- [ ] **EXPO-05**: Export can filter to phone numbers starting with "010" (Korean mobile)
+- [x] **EXPO-01**: Desktop app exports synced data to Excel (.xlsx) file
+- [x] **EXPO-02**: Phone numbers normalized to consistent format
+- [x] **EXPO-03**: Deduplication removes duplicate phone numbers across sources
+- [x] **EXPO-04**: Export handles large datasets (50,000+ rows) without memory issues
+- [x] **EXPO-05**: Export can filter to phone numbers starting with "010" (Korean mobile)
 
 ### Platform
 
 - [x] **PLAT-01**: Android app works as data provider
-- [ ] **PLAT-02**: Windows desktop app works as data consumer
-- [ ] **PLAT-03**: Mac desktop app works as data consumer
+- [x] **PLAT-02**: Windows desktop app works as data consumer
+- [x] **PLAT-03**: Mac desktop app works as data consumer
+
+## v1.1 Requirements (CI/CD & Linux)
+
+### CI/CD Pipeline
+
+- [ ] **CICD-01**: Release builds trigger on git tag push (v*.*.* pattern)
+- [ ] **CICD-02**: Pipeline builds Android APK
+- [ ] **CICD-03**: Pipeline builds macOS app
+- [ ] **CICD-04**: Pipeline builds Windows app
+- [ ] **CICD-05**: Pipeline builds Linux app
+- [ ] **CICD-06**: All platform builds run in parallel
+- [ ] **CICD-07**: Flutter SDK cached to avoid 5+ min downloads
+- [ ] **CICD-08**: GitHub Release created with all platform artifacts
+- [ ] **CICD-09**: SHA256 checksums generated for each artifact
+- [ ] **CICD-10**: Version extracted from git tag (v1.0.0 → 1.0.0)
+
+### Android Signing
+
+- [ ] **SIGN-01**: Android APK signed with release keystore
+- [ ] **SIGN-02**: Keystore secrets stored securely in GitHub Secrets
+- [ ] **SIGN-03**: Signed APK installable on Android devices
+
+### Platform (Addition)
+
+- [ ] **PLAT-04**: Linux desktop app works as data consumer
 
 ## v2 Requirements
 
 Deferred to future release. Tracked but not in current roadmap.
 
-### Session Management
+### Advanced Packaging
 
-- **SESS-01**: Desktop remembers previously paired devices
-- **SESS-02**: Quick reconnect to known devices without re-pairing
+- **PKG-01**: macOS app packaged as DMG with drag-to-Applications
+- **PKG-02**: Linux app packaged as AppImage for universal compatibility
+- **PKG-03**: Windows app packaged as MSIX installer
 
-### Export Options
+### Code Signing
 
-- **EXPO-06**: CSV export option in addition to Excel
-- **EXPO-07**: Custom filter patterns beyond "010" prefix
+- **SIGN-04**: macOS app signed and notarized (eliminates Gatekeeper warnings)
+- **SIGN-05**: Windows app signed (eliminates SmartScreen warnings)
+
+### Release Automation
+
+- **REL-01**: Auto-generated changelog from commit messages
+- **REL-02**: Pre-release detection for -rc, -beta tags
+- **REL-03**: Draft releases for review before publishing
 
 ## Out of Scope
 
@@ -62,6 +92,10 @@ Explicitly excluded. Documented to prevent scope creep.
 | Bidirectional sync | Phone to desktop only — no write-back needed |
 | SMS content/message body | Only phone numbers needed for campaigns |
 | Play Store distribution | SMS/call permissions prohibited — APK sideloading only |
+| iOS app | Not needed, Android-only data source |
+| Store publishing | Direct distribution via GitHub Releases |
+| macOS notarization | Complexity vs benefit (add if users report Gatekeeper issues) |
+| Windows MSIX signing | Complexity vs benefit (add if users report SmartScreen issues) |
 
 ## Traceability
 
@@ -77,20 +111,35 @@ Which phases cover which requirements. Updated during roadmap creation.
 | XFER-02 | Phase 2 | Complete |
 | XFER-03 | Phase 2 | Complete |
 | XFER-04 | Phase 2 | Complete |
-| EXPO-01 | Phase 3 | Pending |
-| EXPO-02 | Phase 3 | Pending |
-| EXPO-03 | Phase 3 | Pending |
-| EXPO-04 | Phase 3 | Pending |
-| EXPO-05 | Phase 3 | Pending |
+| EXPO-01 | Phase 3 | Complete |
+| EXPO-02 | Phase 3 | Complete |
+| EXPO-03 | Phase 3 | Complete |
+| EXPO-04 | Phase 3 | Complete |
+| EXPO-05 | Phase 3 | Complete |
 | PLAT-01 | Phase 1 | Complete |
-| PLAT-02 | Phase 3 | Pending |
-| PLAT-03 | Phase 3 | Pending |
+| PLAT-02 | Phase 3 | Complete |
+| PLAT-03 | Phase 3 | Complete |
+| CICD-01 | Phase 4 | Pending |
+| CICD-02 | Phase 4 | Pending |
+| CICD-03 | Phase 4 | Pending |
+| CICD-04 | Phase 4 | Pending |
+| CICD-05 | Phase 4 | Pending |
+| CICD-06 | Phase 4 | Pending |
+| CICD-07 | Phase 4 | Pending |
+| CICD-08 | Phase 4 | Pending |
+| CICD-09 | Phase 4 | Pending |
+| CICD-10 | Phase 4 | Pending |
+| SIGN-01 | Phase 4 | Pending |
+| SIGN-02 | Phase 4 | Pending |
+| SIGN-03 | Phase 4 | Pending |
+| PLAT-04 | Phase 4 | Pending |
 
 **Coverage:**
-- v1 requirements: 16 total
-- Mapped to phases: 16
+- v1.0 requirements: 16 total (Complete)
+- v1.1 requirements: 14 total
+- Mapped to phases: 30
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-03*
-*Last updated: 2026-02-03 - Phase 2 complete*
+*Last updated: 2026-02-04 — Added v1.1 CI/CD requirements*
