@@ -1,4 +1,4 @@
-import 'package:nsd/nsd.dart';
+import 'package:nsd/nsd.dart' as nsd;
 
 /// Represents a discovered Android device running PhoneSync server.
 class Device {
@@ -13,7 +13,7 @@ class Device {
   });
 
   /// Create Device from nsd Service.
-  factory Device.fromService(Service service) {
+  factory Device.fromService(nsd.Service service) {
     // Get first available IP address
     final addresses = service.addresses;
     final host = addresses != null && addresses.isNotEmpty
