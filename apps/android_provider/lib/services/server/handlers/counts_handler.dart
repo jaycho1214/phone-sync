@@ -33,7 +33,10 @@ Future<Response> handleCounts(
       'phoneNumbersComputing': cache.isComputing,
     });
 
-    return Response.ok(responseBody, headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      responseBody,
+      headers: {'Content-Type': 'application/json'},
+    );
   } catch (e) {
     return Response.internalServerError(
       body: jsonEncode({'error': e.toString()}),

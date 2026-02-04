@@ -14,16 +14,27 @@ class DiscoveryService {
   /// Parameters:
   /// - deviceName: Human-readable name for the device
   /// - port: The port the HTTP server is listening on
-  Future<void> advertise({required String deviceName, required int port}) async {
+  Future<void> advertise({
+    required String deviceName,
+    required int port,
+  }) async {
     if (_registration != null) {
       throw StateError('Service is already advertised');
     }
 
     // Create service with TXT records
     // nsd expects Map<String, Uint8List> for txt
-    final txtRecords = {'version': utf8.encode('1.0'), 'device': utf8.encode(deviceName)};
+    final txtRecords = {
+      'version': utf8.encode('1.0'),
+      'device': utf8.encode(deviceName),
+    };
 
-    final service = Service(name: deviceName, type: '_phonesync._tcp', port: port, txt: txtRecords);
+    final service = Service(
+      name: deviceName,
+      type: '_phonesync._tcp',
+      port: port,
+      txt: txtRecords,
+    );
 
     _registration = await register(service);
   }

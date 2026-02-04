@@ -65,7 +65,10 @@ Handler createRouter({
   // Also updates last activity time for session timeout
   router.get('/health', (Request request) {
     pairingService.updateLastActivity();
-    return Response.ok('{"status": "ok"}', headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      '{"status": "ok"}',
+      headers: {'Content-Type': 'application/json'},
+    );
   });
 
   // Wrap router with authentication middleware

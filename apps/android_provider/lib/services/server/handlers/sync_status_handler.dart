@@ -58,7 +58,10 @@ class SyncStatusHandler {
 ///   "smsSynced": 200,
 ///   "callsSynced": 150
 /// }
-Future<Response> handleSyncStatus(Request request, SyncStorageService storageService) async {
+Future<Response> handleSyncStatus(
+  Request request,
+  SyncStorageService storageService,
+) async {
   try {
     final body = await request.readAsString();
     final json = jsonDecode(body) as Map<String, dynamic>;
@@ -75,7 +78,12 @@ Future<Response> handleSyncStatus(Request request, SyncStorageService storageSer
     switch (action) {
       case 'start':
         SyncStatusHandler.updateStatus(
-          const SyncStatus(isSyncing: true, phase: 'contacts', currentCount: 0, totalCount: 0),
+          const SyncStatus(
+            isSyncing: true,
+            phase: 'contacts',
+            currentCount: 0,
+            totalCount: 0,
+          ),
         );
         break;
 
@@ -84,7 +92,12 @@ Future<Response> handleSyncStatus(Request request, SyncStorageService storageSer
         final current = json['currentCount'] as int? ?? 0;
         final total = json['totalCount'] as int? ?? 0;
         SyncStatusHandler.updateStatus(
-          SyncStatus(isSyncing: true, phase: phase, currentCount: current, totalCount: total),
+          SyncStatus(
+            isSyncing: true,
+            phase: phase,
+            currentCount: current,
+            totalCount: total,
+          ),
         );
         break;
 
@@ -124,7 +137,10 @@ Future<Response> handleSyncStatus(Request request, SyncStorageService storageSer
         );
     }
 
-    return Response.ok(jsonEncode({'status': 'ok'}), headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      jsonEncode({'status': 'ok'}),
+      headers: {'Content-Type': 'application/json'},
+    );
   } catch (e) {
     return Response(
       400,

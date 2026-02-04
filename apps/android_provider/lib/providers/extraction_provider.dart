@@ -134,6 +134,7 @@ class ExtractionNotifier extends Notifier<ExtractionState> {
 }
 
 // Use shared service providers from server_provider.dart to avoid duplicate instances
-final extractionProvider = NotifierProvider<ExtractionNotifier, ExtractionState>(
-  ExtractionNotifier.new,
-);
+final extractionProvider =
+    NotifierProvider<ExtractionNotifier, ExtractionState>(
+      ExtractionNotifier.new,
+    );

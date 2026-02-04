@@ -6,7 +6,10 @@ import 'package:shelf/shelf.dart';
 import '../../contacts_service.dart';
 
 /// Handle GET /contacts endpoint
-Future<Response> handleContacts(Request request, ContactsService service) async {
+Future<Response> handleContacts(
+  Request request,
+  ContactsService service,
+) async {
   try {
     // Contacts don't have timestamp filtering - always full extraction
     final contacts = <Contact>[];
@@ -24,7 +27,10 @@ Future<Response> handleContacts(Request request, ContactsService service) async 
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    return Response.ok(responseBody, headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      responseBody,
+      headers: {'Content-Type': 'application/json'},
+    );
   } catch (e) {
     return Response.internalServerError(
       body: jsonEncode({'error': e.toString()}),
@@ -37,7 +43,11 @@ Map<String, dynamic> _contactToJson(Contact contact) {
   return {
     'id': contact.id,
     'displayName': contact.displayName,
-    'phones': contact.phones.map((p) => {'number': p.number, 'label': p.label.name}).toList(),
-    'emails': contact.emails.map((e) => {'address': e.address, 'label': e.label.name}).toList(),
+    'phones': contact.phones
+        .map((p) => {'number': p.number, 'label': p.label.name})
+        .toList(),
+    'emails': contact.emails
+        .map((e) => {'address': e.address, 'label': e.label.name})
+        .toList(),
   };
 }

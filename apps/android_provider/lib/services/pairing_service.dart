@@ -77,7 +77,10 @@ class PairingService {
   String generatePin() {
     final random = Random.secure();
     final pin = List.generate(6, (_) => random.nextInt(10)).join();
-    _state = PairingState(pin: pin, expiresAt: DateTime.now().add(const Duration(minutes: 5)));
+    _state = PairingState(
+      pin: pin,
+      expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+    );
     return pin;
   }
 

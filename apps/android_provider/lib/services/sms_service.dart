@@ -11,7 +11,9 @@ class SmsService {
   }
 
   /// Get count and phone numbers in a single query (optimization for UI)
-  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({int? sinceTimestamp}) async {
+  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({
+    int? sinceTimestamp,
+  }) async {
     final messages = await _getMessages(sinceTimestamp: sinceTimestamp);
     final phoneNumbers = messages
         .map((m) => m.address)
@@ -40,13 +42,19 @@ class SmsService {
   /// Get phone numbers from SMS messages
   Future<List<String>> extractPhoneNumbers({int? sinceTimestamp}) async {
     final messages = await _getMessages(sinceTimestamp: sinceTimestamp);
-    return messages.map((m) => m.address).where((addr) => addr != null).cast<String>().toList();
+    return messages
+        .map((m) => m.address)
+        .where((addr) => addr != null)
+        .cast<String>()
+        .toList();
   }
 
   Future<List<SmsMessage>> _getMessages({int? sinceTimestamp}) async {
     SmsFilter? filter;
     if (sinceTimestamp != null) {
-      filter = SmsFilter.where(SmsColumn.DATE).greaterThan(sinceTimestamp.toString());
+      filter = SmsFilter.where(
+        SmsColumn.DATE,
+      ).greaterThan(sinceTimestamp.toString());
     }
 
     final inbox = await _telephony.getInboxSms(

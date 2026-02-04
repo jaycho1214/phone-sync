@@ -14,7 +14,9 @@ Future<Response> handleCalls(Request request, CallLogService service) async {
 
     final entries = <CallLogEntry>[];
 
-    await for (final batch in service.extractCallLogs(sinceTimestamp: sinceTimestamp)) {
+    await for (final batch in service.extractCallLogs(
+      sinceTimestamp: sinceTimestamp,
+    )) {
       entries.addAll(batch);
     }
 
@@ -27,7 +29,10 @@ Future<Response> handleCalls(Request request, CallLogService service) async {
       'timestamp': DateTime.now().millisecondsSinceEpoch,
     });
 
-    return Response.ok(responseBody, headers: {'Content-Type': 'application/json'});
+    return Response.ok(
+      responseBody,
+      headers: {'Content-Type': 'application/json'},
+    );
   } catch (e) {
     return Response.internalServerError(
       body: jsonEncode({'error': e.toString()}),

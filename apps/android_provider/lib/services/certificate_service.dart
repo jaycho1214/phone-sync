@@ -20,7 +20,9 @@ class CertificateService {
     final existingKey = prefs.getString(_keyPemKey);
     final expiryTimestamp = prefs.getInt(_certExpiryKey);
 
-    if (existingCert != null && existingKey != null && expiryTimestamp != null) {
+    if (existingCert != null &&
+        existingKey != null &&
+        expiryTimestamp != null) {
       final expiryDate = DateTime.fromMillisecondsSinceEpoch(expiryTimestamp);
       if (DateTime.now().isBefore(expiryDate)) {
         // Certificate is valid, return it

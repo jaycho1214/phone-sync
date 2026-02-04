@@ -16,7 +16,8 @@ class HomeScreen extends ConsumerStatefulWidget {
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen>
+    with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
@@ -122,10 +123,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                         permissions.error != null) ...[
                       const SizedBox(height: 20),
                       _buildErrorBanner(
-                        server.error ?? extraction.error ?? permissions.error ?? '',
+                        server.error ??
+                            extraction.error ??
+                            permissions.error ??
+                            '',
                       ),
                     ],
-
 
                     const SizedBox(height: 24),
                   ],
@@ -175,7 +178,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                       height: 6,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: server.isRunning ? AppColors.accent : AppColors.textMuted,
+                        color: server.isRunning
+                            ? AppColors.accent
+                            : AppColors.textMuted,
                       ),
                     ),
                     const SizedBox(width: 6),
@@ -186,7 +191,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                             : 'Offline',
                         style: TextStyle(
                           fontSize: 12,
-                          color: server.isRunning ? AppColors.accent : AppColors.textMuted,
+                          color: server.isRunning
+                              ? AppColors.accent
+                              : AppColors.textMuted,
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -210,7 +217,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: server.isRunning ? AppColors.surfaceAlt : AppColors.textPrimary,
+                color: server.isRunning
+                    ? AppColors.surfaceAlt
+                    : AppColors.textPrimary,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -218,7 +227,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: server.isRunning ? AppColors.textSecondary : Colors.white,
+                  color: server.isRunning
+                      ? AppColors.textSecondary
+                      : Colors.white,
                 ),
               ),
             ),
@@ -240,7 +251,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildConnectionSection(PairingUIState pairing, DesktopActivityState activity) {
+  Widget _buildConnectionSection(
+    PairingUIState pairing,
+    DesktopActivityState activity,
+  ) {
     if (pairing.isPaired) {
       return Container(
         width: double.infinity,
@@ -263,7 +277,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                   ? const SizedBox(
                       width: 24,
                       height: 24,
-                      child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.check, color: Colors.white, size: 28),
             ),
@@ -280,17 +297,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             if (activity.isExporting)
               Text(
                 activity.exportStatusMessage,
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                style: const TextStyle(
+                  fontSize: 13,
+                  color: AppColors.textSecondary,
+                ),
               )
             else
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.computer, size: 14, color: AppColors.textSecondary),
+                  const Icon(
+                    Icons.computer,
+                    size: 14,
+                    color: AppColors.textSecondary,
+                  ),
                   const SizedBox(width: 6),
                   Text(
                     pairing.clientName ?? 'Desktop',
-                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: AppColors.textSecondary,
+                    ),
                   ),
                 ],
               ),
@@ -327,19 +354,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               Icon(
                 Icons.schedule,
                 size: 14,
-                color: pairing.isPinExpired ? AppColors.error : AppColors.textMuted,
+                color: pairing.isPinExpired
+                    ? AppColors.error
+                    : AppColors.textMuted,
               ),
               const SizedBox(width: 4),
               Text(
-                pairing.isPinExpired ? 'Expired' : pairing.formattedTimeRemaining,
+                pairing.isPinExpired
+                    ? 'Expired'
+                    : pairing.formattedTimeRemaining,
                 style: TextStyle(
                   fontSize: 12,
-                  color: pairing.isPinExpired ? AppColors.error : AppColors.textMuted,
+                  color: pairing.isPinExpired
+                      ? AppColors.error
+                      : AppColors.textMuted,
                 ),
               ),
               const SizedBox(width: 16),
               GestureDetector(
-                onTap: () => ref.read(pairingProvider.notifier).generateNewPin(),
+                onTap: () =>
+                    ref.read(pairingProvider.notifier).generateNewPin(),
                 child: Row(
                   children: [
                     Icon(Icons.refresh, size: 14, color: AppColors.accent),
@@ -400,7 +434,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: needsPermissions ? AppColors.warning.withValues(alpha: 0.4) : AppColors.border,
+          color: needsPermissions
+              ? AppColors.warning.withValues(alpha: 0.4)
+              : AppColors.border,
         ),
       ),
       child: Column(
@@ -408,11 +444,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           // Permission items row
           Row(
             children: [
-              Expanded(child: _buildPermissionItem('Contacts', permissions.contacts)),
+              Expanded(
+                child: _buildPermissionItem('Contacts', permissions.contacts),
+              ),
               Container(width: 1, height: 60, color: AppColors.border),
               Expanded(child: _buildPermissionItem('SMS', permissions.sms)),
               Container(width: 1, height: 60, color: AppColors.border),
-              Expanded(child: _buildPermissionItem('Calls', permissions.callLog)),
+              Expanded(
+                child: _buildPermissionItem('Calls', permissions.callLog),
+              ),
             ],
           ),
           // Action row when permissions needed
@@ -423,7 +463,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                 if (hasSomeDenied) {
                   ref.read(permissionProvider.notifier).openSettings();
                 } else {
-                  await ref.read(permissionProvider.notifier).requestAllPermissions();
+                  await ref
+                      .read(permissionProvider.notifier)
+                      .requestAllPermissions();
                   final newPerms = ref.read(permissionProvider);
                   await ref
                       .read(extractionProvider.notifier)
@@ -454,7 +496,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      hasSomeDenied ? 'Open Settings to Grant' : 'Tap to Grant Permissions',
+                      hasSomeDenied
+                          ? 'Open Settings to Grant'
+                          : 'Tap to Grant Permissions',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
@@ -494,7 +538,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
     }
 
     return GestureDetector(
-      onTap: !isGranted ? () => ref.read(permissionProvider.notifier).openSettings() : null,
+      onTap: !isGranted
+          ? () => ref.read(permissionProvider.notifier).openSettings()
+          : null,
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: Column(
@@ -502,18 +548,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             Container(
               width: 32,
               height: 32,
-              decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(16)),
+              decoration: BoxDecoration(
+                color: bgColor,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Icon(icon, size: 18, color: iconColor),
             ),
             const SizedBox(height: 6),
-            Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+            Text(
+              label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: AppColors.textSecondary,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDataCards(PermissionState permissions, ExtractionState extraction) {
+  Widget _buildDataCards(
+    PermissionState permissions,
+    ExtractionState extraction,
+  ) {
     final hasAnyPermission =
         permissions.contacts.isGranted ||
         permissions.sms.isGranted ||
@@ -597,7 +655,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
             const SizedBox(
               width: 16,
               height: 16,
-              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.textMuted),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: AppColors.textMuted,
+              ),
             )
           else
             Text(
@@ -609,7 +670,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
               ),
             ),
           const SizedBox(height: 4),
-          Text(label, style: const TextStyle(fontSize: 12, color: AppColors.textSecondary)),
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary,
+            ),
+          ),
         ],
       ),
     );
@@ -639,11 +706,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with WidgetsBindingObse
           const Icon(Icons.error_outline, size: 18, color: AppColors.error),
           const SizedBox(width: 10),
           Expanded(
-            child: Text(error, style: const TextStyle(fontSize: 13, color: AppColors.error)),
+            child: Text(
+              error,
+              style: const TextStyle(fontSize: 13, color: AppColors.error),
+            ),
           ),
         ],
       ),
     );
   }
-
 }

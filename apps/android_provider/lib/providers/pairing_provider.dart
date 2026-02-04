@@ -157,4 +157,6 @@ class PairingNotifier extends Notifier<PairingUIState> {
 }
 
 /// Provider that uses PairingService from serverProvider
-final pairingProvider = NotifierProvider<PairingNotifier, PairingUIState>(PairingNotifier.new);
+final pairingProvider = NotifierProvider<PairingNotifier, PairingUIState>(
+  PairingNotifier.new,
+);

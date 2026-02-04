@@ -18,9 +18,19 @@ class ServerState {
   final String? localIp;
   final String? error;
 
-  const ServerState({this.isRunning = false, this.port = 0, this.localIp, this.error});
+  const ServerState({
+    this.isRunning = false,
+    this.port = 0,
+    this.localIp,
+    this.error,
+  });
 
-  ServerState copyWith({bool? isRunning, int? port, String? localIp, String? error}) {
+  ServerState copyWith({
+    bool? isRunning,
+    int? port,
+    String? localIp,
+    String? error,
+  }) {
     return ServerState(
       isRunning: isRunning ?? this.isRunning,
       port: port ?? this.port,
@@ -108,7 +118,10 @@ class ServerNotifier extends Notifier<ServerState> {
 
       // Advertise via mDNS
       final deviceName = await _discoveryService.getDeviceName();
-      await _discoveryService.advertise(deviceName: deviceName, port: actualPort);
+      await _discoveryService.advertise(
+        deviceName: deviceName,
+        port: actualPort,
+      );
 
       state = ServerState(isRunning: true, port: actualPort, localIp: localIp);
     } catch (e) {
@@ -175,4 +188,6 @@ final certificateServiceProvider = Provider((ref) => CertificateService());
 final pairingServiceProvider = Provider((ref) => PairingService());
 final syncStorageServiceProvider = Provider((ref) => SyncStorageService());
 
-final serverProvider = NotifierProvider<ServerNotifier, ServerState>(ServerNotifier.new);
+final serverProvider = NotifierProvider<ServerNotifier, ServerState>(
+  ServerNotifier.new,
+);

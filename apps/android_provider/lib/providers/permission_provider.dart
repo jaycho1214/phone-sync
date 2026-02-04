@@ -17,8 +17,10 @@ class PermissionState {
     this.error,
   });
 
-  bool get hasAnyGranted => contacts.isGranted || sms.isGranted || callLog.isGranted;
-  bool get hasAllGranted => contacts.isGranted && sms.isGranted && callLog.isGranted;
+  bool get hasAnyGranted =>
+      contacts.isGranted || sms.isGranted || callLog.isGranted;
+  bool get hasAllGranted =>
+      contacts.isGranted && sms.isGranted && callLog.isGranted;
 
   PermissionState copyWith({
     PermissionStatus? contacts,
@@ -52,7 +54,12 @@ class PermissionNotifier extends Notifier<PermissionState> {
       // Permission.phone covers call log on Android 9+
       final callLog = await Permission.phone.status;
 
-      state = PermissionState(contacts: contacts, sms: sms, callLog: callLog, isLoading: false);
+      state = PermissionState(
+        contacts: contacts,
+        sms: sms,
+        callLog: callLog,
+        isLoading: false,
+      );
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString());
     }
@@ -85,6 +92,7 @@ class PermissionNotifier extends Notifier<PermissionState> {
   }
 }
 
-final permissionProvider = NotifierProvider<PermissionNotifier, PermissionState>(
-  PermissionNotifier.new,
-);
+final permissionProvider =
+    NotifierProvider<PermissionNotifier, PermissionState>(
+      PermissionNotifier.new,
+    );

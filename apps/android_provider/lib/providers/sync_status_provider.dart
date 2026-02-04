@@ -101,6 +101,7 @@ class DesktopActivityNotifier extends Notifier<DesktopActivityState> {
   }
 }
 
-final desktopActivityProvider = NotifierProvider<DesktopActivityNotifier, DesktopActivityState>(
-  DesktopActivityNotifier.new,
-);
+final desktopActivityProvider =
+    NotifierProvider<DesktopActivityNotifier, DesktopActivityState>(
+      DesktopActivityNotifier.new,
+    );

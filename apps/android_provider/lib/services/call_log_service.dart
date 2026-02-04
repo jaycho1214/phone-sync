@@ -10,7 +10,9 @@ class CallLogService {
   }
 
   /// Get count and phone numbers in a single query (optimization for UI)
-  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({int? sinceTimestamp}) async {
+  Future<({int count, List<String> phoneNumbers})> getCountAndPhoneNumbers({
+    int? sinceTimestamp,
+  }) async {
     final entries = await _getEntries(sinceTimestamp: sinceTimestamp);
     final phoneNumbers = entries
         .map((e) => e.number)
@@ -39,13 +41,20 @@ class CallLogService {
   /// Get phone numbers from call log
   Future<List<String>> extractPhoneNumbers({int? sinceTimestamp}) async {
     final entries = await _getEntries(sinceTimestamp: sinceTimestamp);
-    return entries.map((e) => e.number).where((n) => n != null).cast<String>().toList();
+    return entries
+        .map((e) => e.number)
+        .where((n) => n != null)
+        .cast<String>()
+        .toList();
   }
 
   Future<List<CallLogEntry>> _getEntries({int? sinceTimestamp}) async {
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    final entries = await CallLog.query(dateFrom: sinceTimestamp ?? 0, dateTo: now);
+    final entries = await CallLog.query(
+      dateFrom: sinceTimestamp ?? 0,
+      dateTo: now,
+    );
 
     return entries.toList();
   }
